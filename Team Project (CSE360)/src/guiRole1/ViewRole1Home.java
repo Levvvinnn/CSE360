@@ -15,7 +15,7 @@ import entityClasses.User;
 /*******
  * <p> Title: ViewRole1Home Class. </p>
  * 
- * <p> Description: The Java/FX-based Role1 Home Page.  The page is a stub for some role needed for
+ * <p> Description: The Java/FX-based Contributor Home Page.  The page is a stub for some role needed for
  * the application.  The widgets on this page are likely the minimum number and kind for other role
  * pages that may be needed.</p>
  * 
@@ -80,7 +80,7 @@ public class ViewRole1Home {
 	
 
 	private static Scene theViewRole1HomeScene;	// The shared Scene each invocation populates
-	protected static final int theRole = 2;		// Admin: 1; Role1: 2; Role2: 3
+	protected static final int theRole = 2;		// Admin: 1; Contributor: 2; Role2: 3
 
 	/*-*******************************************************************************************
 
@@ -93,7 +93,7 @@ public class ViewRole1Home {
 	 * <p> Method: displayRole1Home(Stage ps, User user) </p>
 	 * 
 	 * <p> Description: This method is the single entry point from outside this package to cause
-	 * the Role1 Home page to be displayed.
+	 * the Contributor Home page to be displayed.
 	 * 
 	 * It first sets up every shared attributes so we don't have to pass parameters.
 	 * 
@@ -127,13 +127,13 @@ public class ViewRole1Home {
 		label_UserDetails.setText("User: " + theUser.getUserName());
 				
 		// Set the title for the window, display the page, and wait for the Admin to do something
-		theStage.setTitle("CSE 360 Foundations: Role1 Home Page");
+		theStage.setTitle("CSE 360 Foundations: Contributor Home Page");
 		theStage.setScene(theViewRole1HomeScene);
 		theStage.show();
 	}
 	
 	/**********
-	 * <p> Method: ViewRole1Home() </p>
+	 * <p> Method: ViewContributorHome() </p>
 	 * 
 	 * <p> Description: This method initializes all the elements of the graphical user interface.
 	 * This method determines the location, size, font, color, and change and event handlers for
@@ -154,7 +154,7 @@ public class ViewRole1Home {
 		// Populate the window with the title and other common widgets and set their static state
 		
 		// GUI Area 1
-		label_PageTitle.setText("Role1 Home Page");
+		label_PageTitle.setText("Contributor Home Page");
 		setupLabelUI(label_PageTitle, "Arial", 28, width, Pos.CENTER, 0, 5);
 
 		label_UserDetails.setText("User: " + theUser.getUserName());
