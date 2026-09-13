@@ -100,10 +100,15 @@ public class ViewAdminHome {
 	// alert pops up to inform the admin of this fact.
 	protected static Button button_ManageInvitations = new Button("Manage Invitations");
 	protected static Button button_SetOnetimePassword = new Button("Set a One-Time Password");
+	protected static Label label_SelectUserToDelete = new Label("Select a user to delete:");
+	protected static ComboBox <String> combobox_SelectUserToDelete = new ComboBox <String>();
 	protected static Button button_DeleteUser = new Button("Delete a User");
 	protected static Button button_ListUsers = new Button("List All Users");
 	protected static Button button_AddRemoveRoles = new Button("Add/Remove Roles");
 	protected static Alert alertNotImplemented = new Alert(AlertType.INFORMATION);
+	protected static Alert alertConfirmDelete = new Alert(AlertType.CONFIRMATION);
+	protected static Alert alertCannotDeleteSelf = new Alert(AlertType.INFORMATION);
+	protected static Alert alertNoUserSelected = new Alert(AlertType.INFORMATION);
 
 	// This is a separator and it is used to partition the GUI for various tasks
 	private static Line line_Separator4 = new Line(20, 525, width-20,525);
@@ -174,6 +179,13 @@ public class ViewAdminHome {
 
 		// Set the role for potential users to the default (No role selected)
 		combobox_SelectRole.getSelectionModel().select(0);
+
+		// Refresh the delete-user ComboBox and the user count so they match the current
+		// contents of the database each time this page is displayed.
+		List<String> userList = theDatabase.getUserList();
+		combobox_SelectUserToDelete.setItems(FXCollections.observableArrayList(userList));
+		combobox_SelectUserToDelete.getSelectionModel().select(0);
+		label_NumberOfUsers.setText("Number of users: " + theDatabase.getNumberOfUsers());
 				
 		// Set the title for the window, display the page, and wait for the Admin to do something
 		theStage.setTitle("CSE 360 Foundation Code: Admin Home Page");
@@ -252,6 +264,12 @@ public class ViewAdminHome {
 		button_SetOnetimePassword.setOnAction((_) -> 
 			{ControllerAdminHome.setOnetimePassword(); });
 
+		setupLabelUI(label_SelectUserToDelete, "Arial", 16, 250, Pos.BASELINE_LEFT, 290, 345);
+		setupComboBoxUI(combobox_SelectUserToDelete, "Dialog", 16, 250, 290, 370);
+		List<String> userList = theDatabase.getUserList();
+		combobox_SelectUserToDelete.setItems(FXCollections.observableArrayList(userList));
+		combobox_SelectUserToDelete.getSelectionModel().select(0);
+
 		setupButtonUI(button_DeleteUser, "Dialog", 16, 250, Pos.CENTER, 20, 370);
 		button_DeleteUser.setOnAction((_) -> {ControllerAdminHome.deleteUser(); });
 
@@ -280,6 +298,7 @@ public class ViewAdminHome {
     		combobox_SelectRole, button_SendInvitation, line_Separator3,
     		button_ManageInvitations,
     		button_SetOnetimePassword,
+    		label_SelectUserToDelete, combobox_SelectUserToDelete,
     		button_DeleteUser,
     		button_ListUsers,
     		button_AddRemoveRoles,

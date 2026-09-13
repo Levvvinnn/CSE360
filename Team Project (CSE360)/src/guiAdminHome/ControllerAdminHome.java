@@ -1,6 +1,11 @@
 package guiAdminHome;
 
+import java.util.List;
+import java.util.Optional;
+
 import database.Database;
+import javafx.collections.FXCollections;
+import javafx.scene.control.ButtonType;
 
 /*******
  * <p> Title: GUIAdminHomePage Class. </p>
@@ -123,15 +128,59 @@ public class ControllerAdminHome {
 	 * 
 	 * Title: deleteUser () Method. </p>
 	 * 
-	 * <p> Description: Protected method that is currently a stub informing the user that
-	 * this function has not yet been implemented. </p>
+	 * <p> Description: Protected method that lets an Admin delete a selected user from the
+	 * system.  The Admin must first choose a user from the ComboBox.  An Admin cannot delete
+	 * their own account.  A confirmed deletion removes that user from the database so they
+	 * can no longer log in.  Any response other than Yes cancels with no change. </p>
 	 */
 	protected static void deleteUser() {
-		System.out.println("\n*** WARNING ***: Delete User Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
-		ViewAdminHome.alertNotImplemented.setHeaderText("Delete User Issue");
-		ViewAdminHome.alertNotImplemented.setContentText("Delete User Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.showAndWait();
+		// Fetch which user the Admin selected from the ComboBox on the Admin Home page
+		String selectedUser = (String) ViewAdminHome.combobox_SelectUserToDelete.getValue();
+		
+		// If no actual user has been selected, explain the issue and stop here
+		if (selectedUser == null || selectedUser.compareTo("<Select a User>") == 0) {
+			ViewAdminHome.alertNoUserSelected.setTitle("*** WARNING ***");
+			ViewAdminHome.alertNoUserSelected.setHeaderText("Delete User Issue");
+			ViewAdminHome.alertNoUserSelected.setContentText(
+					"Please select a user from the list before clicking Delete a User.");
+			ViewAdminHome.alertNoUserSelected.showAndWait();
+			return;
+		}
+		
+		// An Admin is not allowed to delete the account they are currently using.  Doing so
+		// would leave them without an account while still logged in as that Admin.
+		if (selectedUser.compareTo(ViewAdminHome.theUser.getUserName()) == 0) {
+			ViewAdminHome.alertCannotDeleteSelf.setTitle("*** WARNING ***");
+			ViewAdminHome.alertCannotDeleteSelf.setHeaderText("Delete User Issue");
+			ViewAdminHome.alertCannotDeleteSelf.setContentText(
+					"You cannot delete your own account. The currently logged-in Admin " +
+					"must remain in the system. Select a different user.");
+			ViewAdminHome.alertCannotDeleteSelf.showAndWait();
+			return;
+		}
+		
+		// Ask the Admin to confirm.  Only a "Yes" answer proceeds with the deletion.
+		// Any other response (No, or closing the dialog) cancels with no change.
+		ViewAdminHome.alertConfirmDelete.setTitle("Confirm Delete");
+		ViewAdminHome.alertConfirmDelete.setHeaderText("Delete User");
+		ViewAdminHome.alertConfirmDelete.setContentText(
+				"Are you sure? This will permanently remove user \"" + selectedUser +
+				"\" from the system.");
+		ViewAdminHome.alertConfirmDelete.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
+		Optional<ButtonType> result = ViewAdminHome.alertConfirmDelete.showAndWait();
+		
+		if (result.isPresent() && result.get() == ButtonType.YES) {
+			// The Admin confirmed, so remove the user from the database
+			if (theDatabase.deleteUser(selectedUser)) {
+				// Refresh the ComboBox and the user count so the GUI matches the database
+				List<String> userList = theDatabase.getUserList();
+				ViewAdminHome.combobox_SelectUserToDelete.setItems(
+						FXCollections.observableArrayList(userList));
+				ViewAdminHome.combobox_SelectUserToDelete.getSelectionModel().select(0);
+				ViewAdminHome.label_NumberOfUsers.setText("Number of users: " +
+						theDatabase.getNumberOfUsers());
+			}
+		}
 	}
 	
 	/**********
