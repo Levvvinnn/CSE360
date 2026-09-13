@@ -541,6 +541,31 @@ public class Database {
 	    }
 		return;
 	}
+
+
+	/*******
+	 * <p> Method: boolean deleteUser(String username) </p>
+	 * 
+	 * <p> Description: Remove a user record from the user database given that user's username.
+	 * Once the row is deleted, that user can no longer log in.</p>
+	 * 
+	 * @param username is the username of the user to be removed
+	 * 
+	 * @return true if a user record was deleted, else false
+	 * 
+	 */
+	// Delete a user from the database using that user's username
+	public boolean deleteUser(String username) {
+		String query = "DELETE FROM userDB WHERE userName = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, username);
+			int rowsDeleted = pstmt.executeUpdate();
+			return rowsDeleted > 0;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
 	
 	
 	/*******
