@@ -58,7 +58,7 @@ public class ViewNewAccount {
 	// This alert is used should the invitation code be invalid
     protected static Alert alertInvitationCodeIsInvalid = new Alert(AlertType.INFORMATION);
 
-	// This alert is used should the user enter two passwords that do not match
+	// This alert is used should the user enter invalid passwords
 	protected static Alert alertUsernamePasswordError = new Alert(AlertType.INFORMATION);
 
     protected static Button button_Quit = new Button("Quit");

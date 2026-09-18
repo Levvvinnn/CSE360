@@ -278,7 +278,7 @@ public class EmailAddressRecognizer {
 				break;
 
 			case 5:
-				// State 5 has one valid transition.
+				// State 4 part 2 has one valid transition.
 				//
 				// This state is reached after a period in the local part of the address.  Only
 				// an alphanumeric character may follow -- the local part may not start or end

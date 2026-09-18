@@ -1,7 +1,7 @@
 package guiNewAccount;
 
 import java.sql.SQLException;
-
+import userNameRecognizer.UserNameRecognizer;
 import database.Database;
 import entityClasses.User;
 import passwordPopUpWindow.Model;
@@ -61,6 +61,12 @@ public class ControllerNewAccount {
 		alertPasswordError.setTitle("Invalid Password");
 		alertPasswordError.setHeaderText("The password does not satisfy the requirements.");
 	}
+	private static Alert alertUsernameError = new Alert(AlertType.INFORMATION);
+	
+	static {
+		alertUsernameError.setTitle("Invalid Username");
+		alertUsernameError.setHeaderText("The Username does not satisfy the requirements.");
+	}
 	
 	/**********
 	 * <p> Method: public doCreateUser() </p>
@@ -84,6 +90,14 @@ public class ControllerNewAccount {
 		System.out.println("** Account for Username: " + username + "; theInvitationCode: "+
 				ViewNewAccount.theInvitationCode + "; email address: " + 
 				ViewNewAccount.emailAddress + "; Role: " + ViewNewAccount.theRole);
+		
+		String usernameError = UserNameRecognizer.checkForValidUserName(username);
+		if (!usernameError.isEmpty()) {
+			ViewNewAccount.text_Username.setText("");
+			alertUsernameError.setContentText(usernameError);
+			alertUsernameError.showAndWait();
+			return;
+		}
 		
 		// Make sure the password satisfies the Password Recognizer's FSM rules before anything
 		// else is done with it.  The specific reason for the rejection is shown to the user and
