@@ -1,257 +1,172 @@
 package passwordPopUpWindow;
 
-import javafx.scene.paint.Color;
-
 /*******
- * <p> Title: Model Class - establishes the required GUI data and the computations.
- * </p>
+ * <p> Title: Model Class - the Password Recognizer. </p>
  *
- * <p> Description: This Model class evaluates a password using the requirements
- * specified by the password recognizer. It also performs input-length validation
- * before processing the password.
+ * <p> Description: This class implements the finite state machine defined by the
+ * Password Recognizer UML state machine diagram.  It is a pure recognizer: it has
+ * no dependency on JavaFX or on any View class, so it may be called from any page
+ * in the application (e.g. guiFirstAdmin and guiNewAccount).
+ *
+ * The machine has a single working state (state 0) that consumes one character per
+ * transition, and a single accepting state (state 1) that is reached when the input
+ * is fully consumed.
+ *
+ *   State 0 transitions (self loops):
+ *      A-Z                 [1] increment counter, set upperCase,    advance
+ *      a-z                 [2] increment counter, set lowerCase,    advance
+ *      0-9                 [3] increment counter, set numericChar,  advance
+ *      special character   [4] increment counter, set specialChar,  advance
+ *      other character     [5] set otherChar (the machine halts here; the counter
+ *                              is NOT incremented and the character is NOT consumed)
+ *
+ *   State 0 -> State 1:
+ *      input fully consumed [6] if 8 <= charCounter <= 32 set longEnough
+ *                               if charCounter > 32       set tooLong
+ *
+ * Note that, per the diagram, over-length input is NOT rejected before the machine
+ * runs.  The whole input is consumed and the length is judged by semantic action [6].
  *
  * <p> Copyright: Lynn Robert Carter © 2025 </p>
  *
  * @author Lynn Robert Carter
  *
- * @version 3.00 2026-09-11 Updated for TP1 password length validation
+ * @version 4.00 2026-09-17 Reimplemented from the UML state machine diagram and
+ *                          decoupled from the View
  */
 
 public class Model {
 
-	/*
-	 * Password length limits.
-	 *
-	 * The password must contain at least 8 characters and no more than 64
-	 * characters. The maximum length is checked before the finite-state
-	 * password evaluation begins.
+	/*-******************************************************************************
+	 * Constants
 	 */
+
+	/** The smallest number of characters a valid password may contain. */
 	public static final int MIN_PASSWORD_LENGTH = 8;
+
+	/** The largest number of characters a valid password may contain. */
 	public static final int MAX_PASSWORD_LENGTH = 32;
 
-	/*******
-	 * <p> Title: updatePassword - Protected Method </p>
+	/**
+	 * The set of special characters recognized by transition [4], taken from the
+	 * state machine diagram.  If the diagram's list is revised, change only this
+	 * string; nothing else in the recognizer needs to be touched.
+	 */
+	public static final String SPECIAL_CHARACTERS =
+			"~`!@#$%^&*()_-+{}[]\\:,.?/";
+
+	/**
+	 * When true the recognizer traces its progress to the console.  Leave this
+	 * false in the GUI application; set it true when unit testing the FSM.
+	 */
+	public static boolean debug = false;
+
+	/*-******************************************************************************
+	 * Recognizer results
 	 *
-	 * <p> Description: This method is called whenever the user changes the
-	 * password. It evaluates the current password and updates the GUI.
+	 * These attributes are how the recognizer communicates its findings back to the
+	 * caller.  They are refreshed at the start of every call to evaluatePassword.
 	 */
-	protected static void updatePassword() {
 
-		View.resetAssessments();
-
-		String password = View.text_Password.getText();
-
-		if (password.isEmpty()) {
-
-			View.errPasswordPart1.setText("");
-			View.errPasswordPart2.setText("");
-			View.errPasswordPart3.setText("");
-			View.noInputFound.setText("No input text found!");
-			View.validPassword.setText("");
-
-			View.button_Finish.setDisable(true);
-
-		} else {
-
-			String errMessage = evaluatePassword(password);
-
-			updateFlags();
-
-			if (!errMessage.equals("")) {
-
-				System.out.println(errMessage);
-
-				View.noInputFound.setText("");
-
-				/*
-				 * Prevent substring errors when the error index is outside
-				 * the normal character-processing range.
-				 */
-				int errorIndex = passwordIndexofError;
-
-				if (errorIndex < 0) {
-					errorIndex = 0;
-				}
-
-				if (errorIndex > password.length()) {
-					errorIndex = password.length();
-				}
-
-				View.errPasswordPart1.setText(
-						password.substring(0, errorIndex));
-
-				View.errPasswordPart2.setText("\u21EB");
-
-				View.errPasswordPart3.setText(
-						"The red arrow points at the character causing the error!");
-
-				View.validPassword.setTextFill(Color.RED);
-				View.validPassword.setText(
-						"Failure! The password is not valid.");
-
-				View.button_Finish.setDisable(true);
-
-			} else {
-
-				System.out.println(
-						"Success! The password satisfies the requirements.");
-
-				View.errPasswordPart1.setText("");
-				View.errPasswordPart2.setText("");
-				View.errPasswordPart3.setText("");
-
-				View.validPassword.setTextFill(Color.GREEN);
-				View.validPassword.setText(
-						"Success! The password satisfies the requirements.");
-
-				View.button_Finish.setDisable(false);
-			}
-		}
-	}
-
-	/*
-	 * Attributes used by the password recognizer to communicate the
-	 * evaluation results.
-	 */
+	/** The error message produced by the last evaluation ("" when valid). */
 	public static String passwordErrorMessage = "";
+
+	/** The input string given to the last evaluation. */
 	public static String passwordInput = "";
+
+	/**
+	 * The index of the character that caused the error, or -1 when the failure is
+	 * not attributable to one specific character (e.g. a missing requirement).
+	 */
 	public static int passwordIndexofError = -1;
 
-	public static boolean foundUpperCase = false;
-	public static boolean foundLowerCase = false;
-	public static boolean foundNumericDigit = false;
-	public static boolean foundSpecialChar = false;
-	public static boolean foundLongEnough = false;
+	/** The number of characters consumed by the finite state machine. */
+	public static int charCounter = 0;
+
+	/*
+	 * The Boolean flags named by the state machine diagram.
+	 */
+	public static boolean foundUpperCase = false;		// 1. upperCase
+	public static boolean foundLowerCase = false;		// 2. lowerCase
+	public static boolean foundNumericDigit = false;	// 3. numericChar
+	public static boolean foundSpecialChar = false;		// 4. specialChar
+	public static boolean foundLongEnough = false;		// 5. longEnough
+	public static boolean foundOtherChar = false;		// 6. otherChar
+	public static boolean foundTooLong = false;			// 7. tooLong
+
+	/*-******************************************************************************
+	 * Finite state machine working storage
+	 */
 
 	private static String inputLine = "";
 	private static char currentChar;
 	private static int currentCharNdx;
 	private static boolean running;
 
-	/*
-	 * Displays the current state of password evaluation.
+	/**
+	 * Default constructor.  The recognizer is a collection of static methods, so
+	 * there is no reason to instantiate it.
 	 */
-	private static void displayInputState() {
-
-		System.out.println(inputLine);
-
-		if (currentCharNdx <= inputLine.length()) {
-			System.out.println(
-					inputLine.substring(0, currentCharNdx) + "?");
-		}
-
-		System.out.println(
-				"The password size: " + inputLine.length()
-				+ "  |  The currentCharNdx: " + currentCharNdx
-				+ "  |  The currentChar: \"" + currentChar + "\"");
+	public Model() {
 	}
 
-	/*
-	 * Updates the GUI indicators for each password requirement.
+	/*-******************************************************************************
+	 * The recognizer
 	 */
-	private static void updateFlags() {
-
-		if (foundUpperCase) {
-			View.label_UpperCase.setText(
-					"At least one upper case letter - Satisfied");
-			View.label_UpperCase.setTextFill(Color.GREEN);
-		}
-
-		if (foundLowerCase) {
-			View.label_LowerCase.setText(
-					"At least one lower case letter - Satisfied");
-			View.label_LowerCase.setTextFill(Color.GREEN);
-		}
-
-		if (foundNumericDigit) {
-			View.label_NumericDigit.setText(
-					"At least one numeric digit - Satisfied");
-			View.label_NumericDigit.setTextFill(Color.GREEN);
-		}
-
-		if (foundSpecialChar) {
-			View.label_SpecialChar.setText(
-					"At least one special character - Satisfied");
-			View.label_SpecialChar.setTextFill(Color.GREEN);
-		}
-
-		if (foundLongEnough) {
-			View.label_LongEnough.setText(
-					"At least 8 characters - Satisfied");
-			View.label_LongEnough.setTextFill(Color.GREEN);
-		}
-	}
 
 	/**********
-	 * <p> Title: evaluatePassword - Public Method </p>
+	 * <p> Method: evaluatePassword(String input) </p>
 	 *
-	 * <p> Description: Evaluates the supplied password. Input length is checked
-	 * before the finite-state-machine processing begins.
+	 * <p> Description: Runs the password recognizer over the supplied input and
+	 * reports the result.  All of the public result attributes above are set by
+	 * this method. </p>
 	 *
-	 * @param input password to evaluate
-	 * @return empty string when valid, otherwise an error message
+	 * @param input the password to be evaluated
+	 *
+	 * @return an empty string when the password satisfies every requirement,
+	 *         otherwise a message describing what is wrong
 	 */
 	public static String evaluatePassword(String input) {
 
 		/*
-		 * Reset all evaluation state before processing the new password.
+		 * Semantic action [0]: set the character counter to zero, set all of the
+		 * Boolean flags to False, and set currentChar to the first input character.
 		 */
 		passwordErrorMessage = "";
-		passwordIndexofError = 0;
+		passwordIndexofError = -1;
+		charCounter = 0;
 
 		foundUpperCase = false;
 		foundLowerCase = false;
 		foundNumericDigit = false;
 		foundSpecialChar = false;
 		foundLongEnough = false;
+		foundOtherChar = false;
+		foundTooLong = false;
 
-		/*
-		 * Null input is rejected before any other processing.
-		 */
 		if (input == null) {
 			passwordInput = "";
 			inputLine = "";
-
-			return "*** Error *** The password cannot be null!";
+			passwordIndexofError = 0;
+			passwordErrorMessage = "*** Error *** The password cannot be null!";
+			return passwordErrorMessage;
 		}
 
-		/*
-		 * Empty password validation.
-		 */
-		if (input.length() == 0) {
-			passwordInput = input;
-			inputLine = input;
-
-			return "*** Error *** The password is empty!";
-		}
-
-		/*
-		 * Maximum-length validation MUST happen before the FSM processes
-		 * the password. This protects the application from unnecessarily
-		 * processing excessively large textual input.
-		 */
-		if (input.length() > MAX_PASSWORD_LENGTH) {
-
-			passwordInput = input;
-			inputLine = input;
-
-			passwordIndexofError = MAX_PASSWORD_LENGTH;
-
-			return "*** Error *** The password exceeds the maximum length of "
-					+ MAX_PASSWORD_LENGTH + " characters!";
-		}
-
-		/*
-		 * Store the valid-size input.
-		 */
 		passwordInput = input;
 		inputLine = input;
 		currentCharNdx = 0;
 
+		if (input.isEmpty()) {
+			passwordIndexofError = 0;
+			passwordErrorMessage = "*** Error *** The password is empty!";
+			return passwordErrorMessage;
+		}
+
 		currentChar = input.charAt(0);
 
 		/*
-		 * Start the finite-state-machine processing.
+		 * State 0: consume one character per iteration until either the input is
+		 * fully consumed or an unrecognized character halts the machine.
 		 */
 		running = true;
 
@@ -259,80 +174,125 @@ public class Model {
 
 			displayInputState();
 
-			/*
-			 * Uppercase letter
-			 */
 			if (currentChar >= 'A' && currentChar <= 'Z') {
 
-				System.out.println("Upper case letter found");
+				// Transition [1]: an upper case letter
+				charCounter++;
 				foundUpperCase = true;
+				moveToNextCharacter();
 
-			/*
-			 * Lowercase letter
-			 */
 			} else if (currentChar >= 'a' && currentChar <= 'z') {
 
-				System.out.println("Lower case letter found");
+				// Transition [2]: a lower case letter
+				charCounter++;
 				foundLowerCase = true;
+				moveToNextCharacter();
 
-			/*
-			 * Numeric digit
-			 */
 			} else if (currentChar >= '0' && currentChar <= '9') {
 
-				System.out.println("Digit found");
+				// Transition [3]: a numeric digit
+				charCounter++;
 				foundNumericDigit = true;
+				moveToNextCharacter();
 
-			/*
-			 * Special character
-			 */
-			} else if ("~`!@#$%^&*()_-+={}[]|\\:;\"'<>,.?/"
-					.indexOf(currentChar) >= 0) {
+			} else if (SPECIAL_CHARACTERS.indexOf(currentChar) >= 0) {
 
-				System.out.println("Special character found");
+				// Transition [4]: a special character
+				charCounter++;
 				foundSpecialChar = true;
+				moveToNextCharacter();
 
-			/*
-			 * Any other character is invalid.
-			 */
 			} else {
 
+				/*
+				 * Transition [5]: any other character.  The diagram neither
+				 * increments the counter nor advances the input here, so the
+				 * machine simply halts in a non-accepting state.
+				 */
+				foundOtherChar = true;
 				passwordIndexofError = currentCharNdx;
-
-				return "*** Error *** An invalid character has been found!";
-			}
-
-			/*
-			 * Eight or more characters satisfies the minimum-length
-			 * requirement.
-			 */
-			if (currentCharNdx >= MIN_PASSWORD_LENGTH - 1) {
-
-				System.out.println("At least 8 characters found");
-				foundLongEnough = true;
-			}
-
-			/*
-			 * Move to the next character.
-			 */
-			currentCharNdx++;
-
-			if (currentCharNdx >= inputLine.length()) {
-
 				running = false;
-
-			} else {
-
-				currentChar = input.charAt(currentCharNdx);
 			}
-
-			System.out.println();
 		}
 
 		/*
-		 * Construct an error message containing all requirements that
-		 * were not satisfied.
+		 * Semantic action [6], performed on the transition from state 0 to the
+		 * accepting state.  It is only reached when the input was fully consumed,
+		 * so it is skipped when the machine halted on an invalid character.
 		 */
+		if (!foundOtherChar) {
+
+			if (charCounter >= MIN_PASSWORD_LENGTH
+					&& charCounter <= MAX_PASSWORD_LENGTH) {
+				foundLongEnough = true;
+			}
+
+			if (charCounter > MAX_PASSWORD_LENGTH) {
+				foundTooLong = true;
+			}
+		}
+
+		passwordErrorMessage = buildErrorMessage();
+
+		return passwordErrorMessage;
+	}
+
+	/**********
+	 * <p> Method: isValid(String input) </p>
+	 *
+	 * <p> Description: A convenience wrapper for callers that only need a yes or
+	 * no answer.  The public result attributes are still updated, so the caller
+	 * may inspect the individual flags afterwards. </p>
+	 *
+	 * @param input the password to be evaluated
+	 *
+	 * @return true when the password satisfies every requirement
+	 */
+	public static boolean isValid(String input) {
+		return evaluatePassword(input).isEmpty();
+	}
+
+	/*-******************************************************************************
+	 * Private helper methods
+	 */
+
+	/*
+	 * Advances the machine to the next input character.  When the input has been
+	 * fully consumed the machine stops so semantic action [6] can be performed.
+	 */
+	private static void moveToNextCharacter() {
+
+		currentCharNdx++;
+
+		if (currentCharNdx >= inputLine.length()) {
+			running = false;
+		} else {
+			currentChar = inputLine.charAt(currentCharNdx);
+		}
+	}
+
+	/*
+	 * Assembles the message describing everything that is wrong with the input.
+	 * An invalid character and an over-length password are reported on their own
+	 * because neither can be fixed by adding more character classes.
+	 */
+	private static String buildErrorMessage() {
+
+		if (foundOtherChar) {
+			return "*** Error *** An invalid character was found at position "
+					+ (passwordIndexofError + 1)
+					+ " of the password!";
+		}
+
+		if (foundTooLong) {
+			passwordIndexofError = MAX_PASSWORD_LENGTH;
+			return "*** Error *** The password is "
+					+ charCounter
+					+ " characters long; the maximum is "
+					+ MAX_PASSWORD_LENGTH
+					+ " characters!";
+		}
+
 		String errMessage = "";
 
 		if (!foundUpperCase) {
@@ -344,7 +304,7 @@ public class Model {
 		}
 
 		if (!foundNumericDigit) {
-			errMessage += "Numeric digits; ";
+			errMessage += "Numeric digit; ";
 		}
 
 		if (!foundSpecialChar) {
@@ -352,20 +312,35 @@ public class Model {
 		}
 
 		if (!foundLongEnough) {
-			errMessage += "At least 8 characters; ";
+			errMessage += "At least " + MIN_PASSWORD_LENGTH + " characters; ";
 		}
 
-		/*
-		 * Empty error message means the password satisfies all
-		 * requirements.
-		 */
-		if (errMessage.equals("")) {
+		if (errMessage.isEmpty()) {
 			return "";
 		}
 
-		passwordIndexofError = currentCharNdx;
+		return "*** Error *** " + errMessage + "conditions were not satisfied";
+	}
 
-		return errMessage + "conditions were not satisfied";
+	/*
+	 * Traces the state of the machine.  Does nothing unless debug is turned on.
+	 */
+	private static void displayInputState() {
+
+		if (!debug) {
+			return;
+		}
+
+		System.out.println(inputLine);
+
+		if (currentCharNdx <= inputLine.length()) {
+			System.out.println(inputLine.substring(0, currentCharNdx) + "?");
+		}
+
+		System.out.println(
+				"The password size: " + inputLine.length()
+				+ "  |  The currentCharNdx: " + currentCharNdx
+				+ "  |  The charCounter: " + charCounter
+				+ "  |  The currentChar: \"" + currentChar + "\"");
 	}
 }
- 

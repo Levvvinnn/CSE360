@@ -1,5 +1,6 @@
 package guiFirstAdmin;
 import userNameRecognizer.UserNameRecognizer;
+import passwordPopUpWindow.Model;
 import java.sql.SQLException;
 import database.Database;
 import entityClasses.User;
@@ -25,6 +26,7 @@ import javafx.stage.Stage;
  * @author Lynn Robert Carter
  * 
  * @version 1.00		2025-08-17 Initial version
+ * @version 1.01		2026-09-17 The Admin password is now checked by the password recognizer
  *  
  */
 
@@ -65,6 +67,7 @@ public class ControllerFirstAdmin {
 	 */
 	protected static void setAdminUsername() {
 		adminUsername = ViewFirstAdmin.text_AdminUsername.getText();
+		ViewFirstAdmin.label_PasswordsDoNotMatch.setText("");
 	}
 	
 	
@@ -98,8 +101,9 @@ public class ControllerFirstAdmin {
 	 * <p> Method: doSetupAdmin() </p>
 	 * 
 	 * <p> Description: This method is called when the user presses the button to set up the Admin
-	 * account.  It start by trying to establish a new user and placing that user into the
-	 * database.  If that is successful, we proceed to the UserUpdate page.</p>
+	 * account.  The username is checked by the UserName Recognizer and the password is checked by
+	 * the Password Recognizer before the two password fields are compared.  Only when all three
+	 * checks pass is the new user placed into the database and the UserUpdate page displayed.</p>
 	 * 
 	 */
 	protected static void doSetupAdmin(Stage ps, int r) {
@@ -109,6 +113,15 @@ public class ControllerFirstAdmin {
 		if (!usernameError.isEmpty()) {
 			// The username is not valid, so report the specific error and stop here
 			ViewFirstAdmin.label_PasswordsDoNotMatch.setText(usernameError);
+			return;
+		}
+		
+		// Make sure the password satisfies the Password Recognizer's FSM rules.  The first of the
+		// two fields is checked; if they do not match, the user is told that next.
+		String passwordError = Model.evaluatePassword(adminPassword1);
+		if (!passwordError.isEmpty()) {
+			// The password is not valid, so report the specific error and stop here
+			ViewFirstAdmin.label_PasswordsDoNotMatch.setText(passwordError);
 			return;
 		}
 		
@@ -150,4 +163,3 @@ public class ControllerFirstAdmin {
 		System.exit(0);
 	}	
 }
-

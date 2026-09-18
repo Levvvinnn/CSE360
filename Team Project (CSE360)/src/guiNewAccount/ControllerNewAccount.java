@@ -4,6 +4,9 @@ import java.sql.SQLException;
 
 import database.Database;
 import entityClasses.User;
+import passwordPopUpWindow.Model;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 
 /*******
  * <p> Title: ControllerNewAccount Class. </p>
@@ -24,6 +27,8 @@ import entityClasses.User;
  * @author Lynn Robert Carter
  * 
  * @version 1.00		2025-08-17 Initial version
+ * @version 1.01		2026-09-17 The new account password is now checked by the password
+ * 							   recognizer before the account is created
  *  
  */
 
@@ -49,6 +54,14 @@ public class ControllerNewAccount {
 	// Reference for the in-memory database so this package has access
 	private static Database theDatabase = applicationMain.FoundationsMain.database;
 	
+	// This alert reports the specific reason a password was rejected by the recognizer
+	private static Alert alertPasswordError = new Alert(AlertType.INFORMATION);
+	
+	static {
+		alertPasswordError.setTitle("Invalid Password");
+		alertPasswordError.setHeaderText("The password does not satisfy the requirements.");
+	}
+	
 	/**********
 	 * <p> Method: public doCreateUser() </p>
 	 * 
@@ -71,6 +84,18 @@ public class ControllerNewAccount {
 		System.out.println("** Account for Username: " + username + "; theInvitationCode: "+
 				ViewNewAccount.theInvitationCode + "; email address: " + 
 				ViewNewAccount.emailAddress + "; Role: " + ViewNewAccount.theRole);
+		
+		// Make sure the password satisfies the Password Recognizer's FSM rules before anything
+		// else is done with it.  The specific reason for the rejection is shown to the user and
+		// both password fields are cleared so a fresh password can be entered.
+		String passwordError = Model.evaluatePassword(password);
+		if (!passwordError.isEmpty()) {
+			ViewNewAccount.text_Password1.setText("");
+			ViewNewAccount.text_Password2.setText("");
+			alertPasswordError.setContentText(passwordError);
+			alertPasswordError.showAndWait();
+			return;
+		}
 		
 		// Initialize local variables that will be created during this process
 		int roleCode = 0;
