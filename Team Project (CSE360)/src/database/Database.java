@@ -827,6 +827,27 @@ public class Database {
 			e.printStackTrace();
 		}
 	}
+	/**********
+	 *  Updates a user's password.
+	 */
+	public boolean updatePassword(String userName, String newPassword) {
+ 
+		String query = "UPDATE cse360users SET password = ? WHERE userName = ?";
+ 
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+ 
+			pstmt.setString(1, newPassword);
+			pstmt.setString(2, userName);
+ 
+			return pstmt.executeUpdate() == 1;
+ 
+		} catch (SQLException e) {
+			System.err.println("*** ERROR *** updatePassword: " + e.getMessage());
+			e.printStackTrace();
+			return false;
+		}
+	}
+
 
 	/*******
 	 * Gets all account information for a user.

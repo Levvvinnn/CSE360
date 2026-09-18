@@ -3,11 +3,18 @@ package guiUserUpdate;
 import java.util.Optional;
 
 import database.Database;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
@@ -17,22 +24,29 @@ import entityClasses.User;
  * <p> Title: ViewUserUpdate Class. </p>
  * 
  * <p> Description: The Java/FX-based User Update Page.  This page enables the user to update the
- * attributes about the user held by the system.  Currently, this page does not provide a mechanism
- * to change the Username and not all of the functions on this page are implemented.
+ * attributes about the user held by the system.
  * 
  * Currently the following attributes can be updated:
+ * 		- Password
  * 		- First Name
  * 		- Middle Name
  * 		- Last Name
  * 		- Preferred First Name
  * 		- Email Address
- * The page uses dialog boxes for updating these items.</p>
+ * The page uses dialog boxes for updating these items.
+ * 
+ * The password is the item that is validated on this page.  The password must satisfy the
+ * Password Recognizer.  That checking is performed by ControllerUserUpdate; this class only
+ * collects the input and reports whatever the controller says is wrong.
+ * 
+ * As before, this page does not provide a mechanism to change the Username.</p>
  * 
  * <p> Copyright: Lynn Robert Carter © 2025 </p>
  * 
  * @author Lynn Robert Carter
  * 
  * @version 1.01		2025-08-19 Initial version plus new internal documentation
+ * @version 1.02		2026-09-17 The Password may now be updated
  *  
  */
 
@@ -78,8 +92,8 @@ public class ViewUserUpdate {
 	private static Label label_CurrentPreferredFirstName = new Label();
 	private static Label label_CurrentEmailAddress = new Label();
 	
-	// These buttons enable the user to edit the various dynamic fields.  The username and the
-	// passwords for a user are currently not editable.
+	// These buttons enable the user to edit the various dynamic fields.  The username for a user
+	// is currently not editable.
 	private static Button button_UpdateUsername = new Button("Update Username");
 	private static Button button_UpdatePassword = new Button("Update Password");
 	private static Button button_UpdateFirstName = new Button("Update First Name");
@@ -101,6 +115,15 @@ public class ViewUserUpdate {
 	private static TextInputDialog dialogUpdateLastName;
 	private static TextInputDialog dialogUpdatePreferredFirstName;
 	private static TextInputDialog dialogUpdateEmailAddresss;
+
+	// The password needs two matching inputs, so a standard TextInputDialog will not do.  This
+	// dialog holds two PasswordFields and is built once in the constructor.
+	private static Dialog<ButtonType> dialogUpdatePassword;
+	private static PasswordField text_NewPassword1;
+	private static PasswordField text_NewPassword2;
+
+	// This alert reports whatever the controller found wrong with the proposed password
+	private static Alert alertUpdateError = new Alert(AlertType.INFORMATION);
 	
 	// These attributes are used to configure the page and populate it with this user's information
 	private static ViewUserUpdate theView;	// Used to determine if instantiation of the class
@@ -165,9 +188,8 @@ public class ViewUserUpdate {
     	if (s == null || s.length() < 1)label_CurrentUsername.setText("<none>");
     	else label_CurrentUsername.setText(s);
 		
-		s = theUser.getPassword();
-    	if (s == null || s.length() < 1)label_CurrentPassword.setText("<none>");
-    	else label_CurrentPassword.setText(s);
+    	// The password is never shown in the clear on this page
+    	showCurrentPassword();
     	
 		s = theUser.getFirstName();
     	if (s == null || s.length() < 1)label_CurrentFirstName.setText("<none>");
@@ -237,6 +259,13 @@ public class ViewUserUpdate {
 		dialogUpdateEmailAddresss.setTitle("Update Email Address");
 		dialogUpdateEmailAddresss.setHeaderText("Update your Email Address");
 
+		// Build the two-field password dialog
+		setupPasswordDialog();
+
+		// This alert reports a rejected password
+		alertUpdateError.setTitle("Update Not Accepted");
+		alertUpdateError.setHeaderText("The value you entered was not accepted.");
+
 		// Label theScene with the name of the startup screen, centered at the top of the pane
 		setupLabelUI(label_ApplicationTitle, "Arial", 28, width, Pos.CENTER, 0, 5);
 
@@ -246,15 +275,16 @@ public class ViewUserUpdate {
         // Display the titles, values, and update buttons for the various admin account attributes.
         // If the attributes is null or empty, display "<none>".
         
-        // USername
+        // Username
         setupLabelUI(label_Username, "Arial", 18, 190, Pos.BASELINE_RIGHT, 5, 100);
         setupLabelUI(label_CurrentUsername, "Arial", 18, 260, Pos.BASELINE_LEFT, 200, 100);
         setupButtonUI(button_UpdateUsername, "Dialog", 18, 275, Pos.CENTER, 500, 93);
        
-        // password
+        // Password
         setupLabelUI(label_Password, "Arial", 18, 190, Pos.BASELINE_RIGHT, 5, 150);
         setupLabelUI(label_CurrentPassword, "Arial", 18, 260, Pos.BASELINE_LEFT, 200, 150);
         setupButtonUI(button_UpdatePassword, "Dialog", 18, 275, Pos.CENTER, 500, 143);
+        button_UpdatePassword.setOnAction((_) -> {doUpdatePassword();});
         
         // First Name
         setupLabelUI(label_FirstName, "Arial", 18, 190, Pos.BASELINE_RIGHT, 5, 200);
@@ -344,6 +374,106 @@ public class ViewUserUpdate {
         		button_UpdatePreferredFirstName, button_UpdateEmailAddress,
         		label_EmailAddress, label_CurrentEmailAddress, 
         		button_ProceedToUserHomePage);
+	}
+	
+	
+	/*-********************************************************************************************
+
+	The action for the validated password field
+
+	 */
+	
+	/**********
+	 * <p> Method: doUpdatePassword() </p>
+	 * 
+	 * <p> Description: Collects two copies of a proposed password and hands them to the
+	 * controller.  The fields are always cleared, whether the change was accepted or not, so a
+	 * rejected password is never left sitting on the screen.</p>
+	 */
+	private static void doUpdatePassword() {
+
+		text_NewPassword1.setText("");
+		text_NewPassword2.setText("");
+
+		Optional<ButtonType> choice = dialogUpdatePassword.showAndWait();
+
+		// The user cancelled, so nothing changes
+		if (choice.isEmpty() || choice.get() != ButtonType.OK) {
+			text_NewPassword1.setText("");
+			text_NewPassword2.setText("");
+			return;
+		}
+
+		String errorMessage = ControllerUserUpdate.updatePassword(
+				theUser,
+				text_NewPassword1.getText(),
+				text_NewPassword2.getText());
+
+		text_NewPassword1.setText("");
+		text_NewPassword2.setText("");
+
+		if (!errorMessage.isEmpty()) {
+			alertUpdateError.setContentText(errorMessage);
+			alertUpdateError.showAndWait();
+			return;
+		}
+
+		// The change was accepted, so refresh the displayed value
+		showCurrentPassword();
+	}
+
+	/*
+	 * Builds the two-field password dialog.  This is done once, when the page is created.
+	 */
+	private static void setupPasswordDialog() {
+
+		dialogUpdatePassword = new Dialog<>();
+		dialogUpdatePassword.setTitle("Update Password");
+		dialogUpdatePassword.setHeaderText(
+				"Enter your new password twice.\n"
+				+ "It must be 8 to 32 characters and contain an upper case letter, a lower "
+				+ "case letter,\na digit, and a special character.");
+
+		text_NewPassword1 = new PasswordField();
+		text_NewPassword1.setPromptText("Enter the new password");
+
+		text_NewPassword2 = new PasswordField();
+		text_NewPassword2.setPromptText("Enter the new password again");
+
+		GridPane grid = new GridPane();
+		grid.setHgap(10);
+		grid.setVgap(10);
+		grid.setPadding(new Insets(20, 20, 10, 10));
+		grid.add(new Label("New password:"), 0, 0);
+		grid.add(text_NewPassword1, 1, 0);
+		grid.add(new Label("Confirm password:"), 0, 1);
+		grid.add(text_NewPassword2, 1, 1);
+
+		dialogUpdatePassword.getDialogPane().setContent(grid);
+		dialogUpdatePassword.getDialogPane().getButtonTypes().addAll(
+				ButtonType.OK, ButtonType.CANCEL);
+
+		// The result converter simply reports which button was pressed; the field values are read
+		// directly from the two PasswordFields afterwards.
+		dialogUpdatePassword.setResultConverter(button -> button);
+	}
+
+	/*
+	 * Displays the current password as a row of bullets rather than in the clear.  Showing a
+	 * password on screen is an unnecessary exposure, so only its length is revealed.  To show the
+	 * actual characters instead, replace the body of this method with
+	 * label_CurrentPassword.setText(theUser.getPassword()).
+	 */
+	private static void showCurrentPassword() {
+
+		String s = theUser.getPassword();
+
+		if (s == null || s.length() < 1) {
+			label_CurrentPassword.setText("<none>");
+			return;
+		}
+
+		label_CurrentPassword.setText("\u2022".repeat(s.length()));
 	}
 	
 	
