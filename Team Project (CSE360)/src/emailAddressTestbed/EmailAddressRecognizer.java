@@ -20,6 +20,21 @@ public class EmailAddressRecognizer {
 	 * @version 3.00		2022-03-22	Adjusted to clean up the code and resolving alignment
 	 * 										issues with the design and to correct the issue
 	 * 										with an empty email address
+	 * @version 3.01		2026-09-18	Fixed two missing restrictions found by TC-E08, TC-E09,
+	 * 										TC-E14, and TC-E15 in TP1 Test Cases.pdf:
+	 * 										(1) a period in the local part previously just
+	 * 										self-looped in state 1, so consecutive periods and a
+	 * 										period immediately before '@' were wrongly accepted.
+	 * 										Periods in the local part now route through new
+	 * 										state 5, which mirrors state 4's "must be followed by
+	 * 										an alphanumeric character" behavior for the domain
+	 * 										part, but returns to state 1 instead of state 3.
+	 * 										(2) a hyphen in the domain part previously self-looped
+	 * 										in state 3 (treated the same as an alphanumeric
+	 * 										character), so a trailing hyphen and consecutive
+	 * 										hyphens were wrongly accepted. A hyphen now routes
+	 * 										through state 4, the same state a period already used,
+	 * 										so it is held to the same rule.
 	 * 
 	 */
 
@@ -159,9 +174,11 @@ public class EmailAddressRecognizer {
 					nextState = 1;
 				}
 				
-				// The current character may be a period, in which case the FSM stays in state 1
+				// The current character may be a period.  A period may not lead, trail, or
+				// repeat in the local part, so the FSM moves to state 5, which requires the
+				// very next character to be alphanumeric before returning to state 1.
 				else if (currentChar == '.') {
-					nextState = 1;
+					nextState = 5;
 				}
 				
 				// The current character may be an @ sign, in which case the FSM moves on to
@@ -211,9 +228,12 @@ public class EmailAddressRecognizer {
 					domainPartCounter++;
 				}
 				
-				// The current character may be a hyphen, in which case the FSM stays in state 3
+				// The current character may be a hyphen.  A hyphen may not lead, trail, or
+				// repeat in a domain label, so the FSM moves to state 4 -- the same state used
+				// after a period -- which requires the very next character to be alphanumeric
+				// before returning to state 3.
 				else if (currentChar == '-') {
-					nextState = 3;
+					nextState = 4;
 					domainPartCounter++;
 				}
 				
@@ -235,6 +255,10 @@ public class EmailAddressRecognizer {
 
 			case 4: 
 				// State 4 has one valid transition.
+				//
+				// This state is reached after either a period or a hyphen in the domain part.
+				// Both require the very next character to be alphanumeric -- neither may lead,
+				// trail, or repeat -- so a single state serves both separators.
 
 				// The current character must be an alphanumeric character, in which case the
 				// FSM moves back to state 3 to continue processing the domain name part
@@ -243,6 +267,29 @@ public class EmailAddressRecognizer {
 						(currentChar >= '0' && currentChar <= '9')) {	// Digit
 					nextState = 3;
 					domainPartCounter++;
+				}
+				
+				// If it is none of those characters, the FSM halts
+				else {
+					running = false;
+				}
+
+				// The execution of this state is finished
+				break;
+
+			case 5:
+				// State 5 has one valid transition.
+				//
+				// This state is reached after a period in the local part of the address.  Only
+				// an alphanumeric character may follow -- the local part may not start or end
+				// with a period, and two periods may not appear in a row.
+
+				// The current character must be an alphanumeric character, in which case the
+				// FSM moves back to state 1 to continue processing the local part
+				if ((currentChar >= 'A' && currentChar <= 'Z')|| 		// Upper case
+						(currentChar >= 'a' && currentChar <= 'z') ||	// Lower case
+						(currentChar >= '0' && currentChar <= '9')) {	// Digit
+					nextState = 1;
 				}
 				
 				// If it is none of those characters, the FSM halts
@@ -320,9 +367,23 @@ public class EmailAddressRecognizer {
 			}
 
 		case 4:
-			// State 4 is not a final state, so we can return a very specific error message. 
+			// State 4 is not a final state, so we can return a very specific error message.
+			// Reached after either a period or a hyphen in the domain part with no alphanumeric
+			// character following it.
 			emailAddressIndexofError = currentCharNdx;		// Copy the index of the current character;
-			emailAddressErrorMessage = "A period must be followed by an alphanumeric character.\n";
+			emailAddressErrorMessage =
+					"A period or hyphen in the domain must be followed by an alphanumeric " +
+					"character.\n";
+			return emailAddressErrorMessage + displayInput(input, currentCharNdx);
+
+		case 5:
+			// State 5 is not a final state, so we can return a very specific error message.
+			// Reached after a period in the local part with no alphanumeric character following
+			// it.
+			emailAddressIndexofError = currentCharNdx;		// Copy the index of the current character;
+			emailAddressErrorMessage =
+					"A period in the local part must be followed by an alphanumeric " +
+					"character.\n";
 			return emailAddressErrorMessage + displayInput(input, currentCharNdx);
 
 		default:

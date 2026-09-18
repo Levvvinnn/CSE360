@@ -2,7 +2,7 @@ package guiAdminHome;
 
 import java.util.List;
 import java.util.Optional;
-
+import emailAddressTestbed.EmailAddressRecognizer;
 import database.Database;
 import javafx.collections.FXCollections;
 import javafx.scene.control.ButtonType;
@@ -326,13 +326,13 @@ public class ControllerAdminHome {
 	 * @param emailAddress	This String holds what is expected to be an email address
 	 */
 	protected static boolean invalidEmailAddress(String emailAddress) {
-		if (emailAddress.length() == 0) {
-			ViewAdminHome.alertEmailError.setContentText(
-					"Correct the email address and try again.");
-			ViewAdminHome.alertEmailError.showAndWait();
-			return true;
-		}
-		return false;
+		String emailError = EmailAddressRecognizer.checkEmailAddress(emailAddress);
+	    if (!emailError.isEmpty()) {
+	        ViewAdminHome.alertEmailError.setContentText(emailError.trim());
+	        ViewAdminHome.alertEmailError.showAndWait();
+	        return true;
+	    }
+	    return false;
 	}
 	
 	/**********

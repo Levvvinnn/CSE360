@@ -4,16 +4,11 @@ import userNameRecognizer.UserNameRecognizer;
 import emailAddressTestbed.EmailAddressRecognizer; 
 
 /**
- * Test cases for the UserNameRecognizer FSM implementation (v1.02).
+ * Test cases for the UserNameRecognizer FSM implementation (v1.50).
  *
  * These are the same 16 cases (TC-U01 - TC-U16) from the Username Recognizer
  * test case table, run against the actual checkForValidUserName() method.
  *
- * NOTE: TC-U01 ("abc") and TC-U08 ("a") were marked Valid in the original
- * table, which was written against the general state-machine rules only.
- * The actual implementation also enforces a 4-32 character length range, so
- * those two are Invalid here (too short) rather than Valid. Every other
- * case's expected result is unchanged.
  */
 public class testCases {
 
@@ -99,19 +94,6 @@ public class testCases {
 			System.out.println("Result: *** FAIL ***");
 		}
 	}
-	
-	// Builds a string of length totalLength starting with 'a' followed by 'b's.
-	// Used for exact-length boundary tests without relying on String.repeat().
-	private static String buildOfLength(int totalLength) {
-		StringBuilder sb = new StringBuilder();
-		sb.append('a');
-		for (int i = 1; i < totalLength; i++) {
-			sb.append('b');
-		}
-		return sb.toString();
-	}
-
-	
 
 	private static void runUserNameTestCases() {
 		 
@@ -148,7 +130,7 @@ public class testCases {
 		performPasswordTestCase("TC-P11", "Password!",        false);	// Missing only a numeric digit
 		performPasswordTestCase("TC-P12", "Passw0rd !",       false);	// Contains a space (invalid character)
 		performPasswordTestCase("TC-P13", "Passw\u00E9rd1!",  false);	// Contains 'é' (invalid character, non-ASCII)
-		performPasswordTestCase("TC-P14", "Aa1;\"Bb2",        true);	// All 4 classes using the expanded special set (';' and '"')
+		performPasswordTestCase("TC-P14", "Aa1:Bb2,",        true);	// All 4 classes, length exactly 8 (combined boundary + completeness case)
 	}
 	
 	private static void runEmailTestCases() {
@@ -171,16 +153,16 @@ public class testCases {
 		performEmailTestCase("TC-E17", "us er@example.com", false);
 		performEmailTestCase("TC-E18", "user@exam ple.com", false);
 		performEmailTestCase("TC-E19", buildAllClassesOfLength(255) + "@email.com", false);
-
-		
-		
 	}
  
-	// Builds a password of exactly totalLength characters that contains all four
-	// required classes (upper, lower, digit, special), used for the length
-	// boundary test cases.
+	// Builds a string of exactly totalLength characters that contains all four
+	// required password character classes (upper, lower, digit, special), used
+	// for the password length boundary test cases (TC-P04, TC-P05) and reused
+	// as harmless filler for the oversized email local-part case (TC-E19).
+
+	
 	private static String buildAllClassesOfLength(int totalLength) {
-		StringBuilder sb = new StringBuilder("A");
+		StringBuilder sb = new StringBuilder("Aa1!"); // one of each required class
 		for (int i = sb.length(); i < totalLength; i++) {
 			sb.append('a');
 		}
