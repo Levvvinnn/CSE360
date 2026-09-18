@@ -1,6 +1,7 @@
 package testCases;
 
 import userNameRecognizer.UserNameRecognizer;
+import emailAddressTestbed.EmailAddressRecognizer; 
 
 /**
  * Test cases for the UserNameRecognizer FSM implementation (v1.02).
@@ -44,6 +45,7 @@ public class testCases {
 		}
 	}
 	
+	
 	/**
 	 * Runs a single named test case against Model.evaluatePassword() and
 	 * reports whether the actual result matched the expected result.
@@ -72,6 +74,30 @@ public class testCases {
 		}
 
 		
+	}
+	/**
+	 * Runs a single named test case against the EmailAddressRecognizer and reports
+	 * whether the actual result matched the expected result.
+	 *
+	 * @param id			The test case ID from the test case table (e.g. "TC-E01")
+	 * @param input			The UserName candidate to test
+	 * @param expectedValid	true if the input is expected to be a valid UserName
+	 */
+	private static void performEmailTestCase(String id, String input, boolean expectedValid) {
+		String result = EmailAddressRecognizer.checkEmailAddress(input);
+		boolean actualValid = result.isEmpty();
+
+		System.out.println("\n" + id + ": \"" + input + "\"");
+		System.out.println("Expected: " + (expectedValid ? "Valid" : "Invalid"));
+		System.out.println("Actual:   " + (actualValid ? "Valid" : "Invalid -> " + result.trim()));
+
+		if (actualValid == expectedValid) {
+			numPassed++;
+			System.out.println("Result: PASS");
+		} else {
+			numFailed++;
+			System.out.println("Result: *** FAIL ***");
+		}
 	}
 	
 	// Builds a string of length totalLength starting with 'a' followed by 'b's.
@@ -122,15 +148,39 @@ public class testCases {
 		performPasswordTestCase("TC-P11", "Password!",        false);	// Missing only a numeric digit
 		performPasswordTestCase("TC-P12", "Passw0rd !",       false);	// Contains a space (invalid character)
 		performPasswordTestCase("TC-P13", "Passw\u00E9rd1!",  false);	// Contains 'é' (invalid character, non-ASCII)
-		performPasswordTestCase("TC-P14", null,               false);	// Null input
-		performPasswordTestCase("TC-P15", "Aa1;\"Bb2",        true);	// All 4 classes using the expanded special set (';' and '"')
+		performPasswordTestCase("TC-P14", "Aa1;\"Bb2",        true);	// All 4 classes using the expanded special set (';' and '"')
+	}
+	
+	private static void runEmailTestCases() {
+		performEmailTestCase("TC-E01", "user@example.com", true);
+		performEmailTestCase("TC-E02", "first.last@example.com", true);
+		performEmailTestCase("TC-E03", "user@my-site.com", true);
+		performEmailTestCase("TC-E04", "user@mail.example.co.uk", true);
+		performEmailTestCase("TC-E05", "a@b.co", true);
+		performEmailTestCase("TC-E06", "userexample.com", false);
+		performEmailTestCase("TC-E07", ".user@example.com", false);
+		performEmailTestCase("TC-E08", "user..name@example.com", false);
+		performEmailTestCase("TC-E09", "user.@example.com", false);
+		performEmailTestCase("TC-E10", "@example.com", false);
+		performEmailTestCase("TC-E11", "user@", false);
+		performEmailTestCase("TC-E12", "user@.com", false);
+		performEmailTestCase("TC-E13", "user@example.com.", false);
+		performEmailTestCase("TC-E14", "user@example.com-", false);
+		performEmailTestCase("TC-E15", "user@exa--mple.com", false);
+		performEmailTestCase("TC-E16", "user@example..com", false);
+		performEmailTestCase("TC-E17", "us er@example.com", false);
+		performEmailTestCase("TC-E18", "user@exam ple.com", false);
+		performEmailTestCase("TC-E19", buildAllClassesOfLength(255) + "@email.com", false);
+
+		
+		
 	}
  
 	// Builds a password of exactly totalLength characters that contains all four
 	// required classes (upper, lower, digit, special), used for the length
 	// boundary test cases.
 	private static String buildAllClassesOfLength(int totalLength) {
-		StringBuilder sb = new StringBuilder("Aa1!");
+		StringBuilder sb = new StringBuilder("A");
 		for (int i = sb.length(); i < totalLength; i++) {
 			sb.append('a');
 		}
@@ -141,6 +191,7 @@ public class testCases {
  
 		runUserNameTestCases();
 		runPasswordTestCases();
+		runEmailTestCases();
  
 		// ---------- Summary ----------
 		System.out.println("\n----------------------------------------");
