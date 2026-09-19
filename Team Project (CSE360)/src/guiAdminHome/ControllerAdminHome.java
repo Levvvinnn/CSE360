@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 import emailAddressTestbed.EmailAddressRecognizer;
 import database.Database;
+import entityClasses.User;
 import javafx.collections.FXCollections;
 import javafx.scene.control.ButtonType;
 
@@ -287,15 +288,87 @@ public class ControllerAdminHome {
 	 * 
 	 * Title: listUsers () Method. </p>
 	 * 
-	 * <p> Description: Protected method that is currently a stub informing the user that
-	 * this function has not yet been implemented. </p>
+	 * <p> Description: Protected method that displays the username, full name, email address,
+	 * and assigned roles for every user currently in the system.  The information is shown in
+	 * a scrollable, read-only dialog since the number of users is not bounded. </p>
 	 */
 	protected static void listUsers() {
-		System.out.println("\n*** WARNING ***: List Users Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
-		ViewAdminHome.alertNotImplemented.setHeaderText("List User Issue");
-		ViewAdminHome.alertNotImplemented.setContentText("List Users Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.showAndWait();
+		// Fetch every user record currently in the database
+		List<User> allUsers = theDatabase.getAllUsers();
+
+		if (allUsers.isEmpty()) {
+			ViewAdminHome.alertNotImplemented.setTitle("List All Users");
+			ViewAdminHome.alertNotImplemented.setHeaderText("No Users Found");
+			ViewAdminHome.alertNotImplemented.setContentText(
+					"There are no users currently in the system.");
+			ViewAdminHome.alertNotImplemented.showAndWait();
+			return;
+		}
+
+		// Build one block of text per user with their username, full name, email address, and
+		// the roles they currently have assigned
+		StringBuilder sb = new StringBuilder();
+		for (User user : allUsers) {
+			sb.append("Username: ").append(user.getUserName()).append("\n");
+			sb.append("Name: ").append(buildFullName(user)).append("\n");
+			sb.append("Email: ").append(
+					(user.getEmailAddress() == null || user.getEmailAddress().isEmpty())
+							? "(none)" : user.getEmailAddress()).append("\n");
+			sb.append("Roles: ").append(buildRoleList(user)).append("\n");
+			sb.append("------------------------------------------------------------\n");
+		}
+
+		ViewAdminHome.textarea_UserList.setText(sb.toString());
+		ViewAdminHome.alertListUsers.setHeaderText("All Users (" + allUsers.size() + ")");
+		ViewAdminHome.alertListUsers.showAndWait();
+	}
+
+	/**********
+	 * <p> 
+	 * 
+	 * Title: buildFullName () Method. </p>
+	 * 
+	 * <p> Description: Protected helper method that assembles a user's full name from their
+	 * first, middle, and last name attributes, skipping any that have not been set. </p>
+	 * 
+	 * @param user	specifies the user whose full name is being assembled
+	 * 
+	 * @return a single String with the user's first, middle, and last name separated by spaces,
+	 * 			or "(not set)" if none of those fields have been populated
+	 */
+	private static String buildFullName(User user) {
+		StringBuilder name = new StringBuilder();
+		if (user.getFirstName() != null && !user.getFirstName().isEmpty())
+			name.append(user.getFirstName());
+		if (user.getMiddleName() != null && !user.getMiddleName().isEmpty())
+			name.append(name.length() > 0 ? " " : "").append(user.getMiddleName());
+		if (user.getLastName() != null && !user.getLastName().isEmpty())
+			name.append(name.length() > 0 ? " " : "").append(user.getLastName());
+		return name.length() > 0 ? name.toString() : "(not set)";
+	}
+
+	/**********
+	 * <p> 
+	 * 
+	 * Title: buildRoleList () Method. </p>
+	 * 
+	 * <p> Description: Protected helper method that assembles a comma-separated list of the
+	 * roles a user currently has assigned. </p>
+	 * 
+	 * @param user	specifies the user whose assigned roles are being listed
+	 * 
+	 * @return a comma-separated String of this user's roles (e.g., "Admin, Contributor"), or
+	 * 			"(none)" if the user has no roles assigned
+	 */
+	private static String buildRoleList(User user) {
+		StringBuilder roles = new StringBuilder();
+		if (user.getAdminRole())
+			roles.append("Admin");
+		if (user.getNewRole1())
+			roles.append(roles.length() > 0 ? ", " : "").append("Contributor");
+		if (user.getNewRole2())
+			roles.append(roles.length() > 0 ? ", " : "").append("Viewer");
+		return roles.length() > 0 ? roles.toString() : "(none)";
 	}
 	
 	/**********

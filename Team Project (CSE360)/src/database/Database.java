@@ -233,48 +233,85 @@ public class Database {
 		return userList;
 	}
 
-	/*******
-	 * Validates an Admin user's login.
-	 */
-	public boolean loginAdmin(User user) {
-
-		String query =
-				"SELECT * FROM userDB "
-				+ "WHERE userName = ? "
-				+ "AND password = ? "
-				+ "AND adminRole = TRUE";
-
-		try (PreparedStatement pstmt =
-				connection.prepareStatement(query)) {
-
-			pstmt.setString(1, user.getUserName());
-			pstmt.setString(2, user.getPassword());
-
+/*******
+ * <p> Method: List<User> getAllUsers() </p>
+ * 
+ * <p> Description: Generate a List of User objects, one for each user record currently in the
+ * userDB table. Used by the Admin "List All Users" function to display the username, full name,
+ * email address, and assigned roles for every user in the system. </p>
+ * 
+ * @return a list of User objects, one per row in the userDB table. The list is empty (never
+ * 			null) if there are no users or if a database error occurs.
+ * 
+ */
+	public List<User> getAllUsers() {
+		List<User> allUsers = new ArrayList<User>();
+		String query = "SELECT * FROM userDB";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			ResultSet rs = pstmt.executeQuery();
-
-			return rs.next();
-
+			while (rs.next()) {
+				User user = new User(
+						rs.getString("userName"),
+						rs.getString("password"),
+						rs.getString("firstName"),
+						rs.getString("middleName"),
+						rs.getString("lastName"),
+						rs.getString("preferredFirstName"),
+						rs.getString("emailAddress"),
+						rs.getBoolean("adminRole"),
+						rs.getBoolean("newRole1"),
+						rs.getBoolean("newRole2"));
+				allUsers.add(user);
+			}
 		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-		return false;
+	        e.printStackTrace();
+	    }
+		return allUsers;
 	}
 
-	/*******
-	 * Validates a Role 1 user's login.
-	 */
+/*******
+ * <p> Method: boolean loginAdmin(User user) </p>
+ * 
+ * <p> Description: Check to see that a user with the specified username, password, and role
+ * 		is the same as a row in the table for the username, password, and role. </p>
+ * 
+ * @param user specifies the specific user that should be logged in playing the Admin role.
+ * 
+ * @return true if the specified user has been logged in as an Admin else false.
+ * 
+ */
+	public boolean loginAdmin(User user){
+		// Validates an admin user's login credentials so the user can login in as an Admin.
+		String query = "SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
+				+ "adminRole = TRUE";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, user.getUserName());
+			pstmt.setString(2, user.getPassword());
+			ResultSet rs = pstmt.executeQuery();
+			return rs.next();	// If a row is returned, rs.next() will return true		
+		} catch  (SQLException e) {
+	        e.printStackTrace();
+	    }
+		return false;
+	}
+	
+	
+/*******
+ * <p> Method: boolean loginRole1(User user) </p>
+ * 
+ * <p> Description: Check to see that a user with the specified username, password, and role
+ * 		is the same as a row in the table for the username, password, and role. </p>
+ * 
+ * @param user specifies the specific user that should be logged in playing the Student role.
+ * 
+ * @return true if the specified user has been logged in as an Student else false.
+ * 
+ */
 	public boolean loginRole1(User user) {
-
-		String query =
-				"SELECT * FROM userDB "
-				+ "WHERE userName = ? "
-				+ "AND password = ? "
-				+ "AND newRole1 = TRUE";
-
-		try (PreparedStatement pstmt =
-				connection.prepareStatement(query)) {
-
+		// Validates a student user's login credentials.
+		String query = "SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
+				+ "newRole1 = TRUE";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, user.getUserName());
 			pstmt.setString(2, user.getPassword());
 

@@ -10,6 +10,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.layout.Pane;
@@ -106,6 +107,8 @@ public class ViewAdminHome {
 	protected static Button button_ListUsers = new Button("List All Users");
 	protected static Button button_AddRemoveRoles = new Button("Add/Remove Roles");
 	protected static Alert alertNotImplemented = new Alert(AlertType.INFORMATION);
+	protected static Alert alertListUsers = new Alert(AlertType.INFORMATION);
+	protected static TextArea textarea_UserList = new TextArea();
 	protected static Alert alertConfirmDelete = new Alert(AlertType.CONFIRMATION);
 	protected static Alert alertCannotDeleteSelf = new Alert(AlertType.INFORMATION);
 	protected static Alert alertNoUserSelected = new Alert(AlertType.INFORMATION);
@@ -275,6 +278,17 @@ public class ViewAdminHome {
 
 		setupButtonUI(button_ListUsers, "Dialog", 16, 250, Pos.CENTER, 20, 420);
 		button_ListUsers.setOnAction((_) -> {ControllerAdminHome.listUsers(); });
+
+		// Set up the scrollable, read-only text area used to display every user's
+		// username, full name, email address, and assigned roles, then embed it as the
+		// content of the alertListUsers dialog so it can hold more than one line of text.
+		textarea_UserList.setEditable(false);
+		textarea_UserList.setWrapText(false);
+		textarea_UserList.setPrefWidth(520);
+		textarea_UserList.setPrefHeight(360);
+		alertListUsers.setTitle("List All Users");
+		alertListUsers.getDialogPane().setContent(textarea_UserList);
+		alertListUsers.setResizable(true);
 
 		setupButtonUI(button_AddRemoveRoles, "Dialog", 16, 250, Pos.CENTER, 20, 470);
 		button_AddRemoveRoles.setOnAction((_) -> {ControllerAdminHome.addRemoveRoles(); });
