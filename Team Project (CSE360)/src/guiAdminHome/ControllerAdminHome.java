@@ -2,7 +2,7 @@ package guiAdminHome;
 
 import java.util.List;
 import java.util.Optional;
-
+import emailAddressTestbed.EmailAddressRecognizer;
 import database.Database;
 import entityClasses.User;
 import javafx.collections.FXCollections;
@@ -116,12 +116,111 @@ public class ControllerAdminHome {
 	 * <p> Description: Protected method that is currently a stub informing the user that
 	 * this function has not yet been implemented. </p>
 	 */
-	protected static void setOnetimePassword () {
-		System.out.println("\n*** WARNING ***: One-Time Password Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
-		ViewAdminHome.alertNotImplemented.setHeaderText("One-Time Password Issue");
-		ViewAdminHome.alertNotImplemented.setContentText("One-Time Password Not Yet Implemented");
-		ViewAdminHome.alertNotImplemented.showAndWait();
+	protected static void setOnetimePassword() {
+
+	    // Get the user selected by the Admin
+	    String selectedUser =
+	            (String) ViewAdminHome.combobox_SelectUserToDelete.getValue();
+
+	    // Make sure a user was selected
+	    if (selectedUser == null ||
+	            selectedUser.compareTo("<Select a User>") == 0) {
+
+	        ViewAdminHome.alertNoUserSelected.setTitle("*** WARNING ***");
+	        ViewAdminHome.alertNoUserSelected.setHeaderText(
+	                "One-Time Password Issue");
+	        ViewAdminHome.alertNoUserSelected.setContentText(
+	                "Please select a user before setting a one-time password.");
+	        ViewAdminHome.alertNoUserSelected.showAndWait();
+
+	        return;
+	    }
+
+	    // Do not allow the Admin to reset their own password
+	    if (selectedUser.compareTo(ViewAdminHome.theUser.getUserName()) == 0) {
+
+	        ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
+	        ViewAdminHome.alertNotImplemented.setHeaderText(
+	                "One-Time Password Issue");
+	        ViewAdminHome.alertNotImplemented.setContentText(
+	                "You cannot set a one-time password for your own account.");
+	        ViewAdminHome.alertNotImplemented.showAndWait();
+
+	        return;
+	    }
+
+	    // Ask the Admin to enter the new one-time password
+	    javafx.scene.control.TextInputDialog passwordDialog =
+	            new javafx.scene.control.TextInputDialog();
+
+	    passwordDialog.setTitle("Set One-Time Password");
+	    passwordDialog.setHeaderText(
+	            "Set a One-Time Password for: " + selectedUser);
+	    passwordDialog.setContentText(
+	            "Enter the temporary password:");
+
+	    java.util.Optional<String> result =
+	            passwordDialog.showAndWait();
+
+	    // Admin cancelled the dialog
+	    if (!result.isPresent()) {
+	        return;
+	    }
+
+	    String oneTimePassword = result.get();
+
+	    // Check that something was entered
+	    if (oneTimePassword == null ||
+	            oneTimePassword.trim().length() == 0) {
+
+	        ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
+	        ViewAdminHome.alertNotImplemented.setHeaderText(
+	                "One-Time Password Issue");
+	        ViewAdminHome.alertNotImplemented.setContentText(
+	                "The one-time password cannot be empty.");
+	        ViewAdminHome.alertNotImplemented.showAndWait();
+
+	        return;
+	    }
+
+	    // Check the password length before using it
+	    if (oneTimePassword.length() > 64) {
+
+	        ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
+	        ViewAdminHome.alertNotImplemented.setHeaderText(
+	                "One-Time Password Issue");
+	        ViewAdminHome.alertNotImplemented.setContentText(
+	                "The one-time password cannot be longer than 64 characters.");
+	        ViewAdminHome.alertNotImplemented.showAndWait();
+
+	        return;
+	    }
+
+	    // Save the one-time password in the database
+	    if (theDatabase.setOneTimePassword(selectedUser, oneTimePassword)) {
+
+	        System.out.println(
+	                "One-time password successfully set for user: "
+	                + selectedUser);
+
+	        ViewAdminHome.alertNotImplemented.setTitle(
+	                "One-Time Password Set");
+	        ViewAdminHome.alertNotImplemented.setHeaderText(
+	                "Success");
+	        ViewAdminHome.alertNotImplemented.setContentText(
+	                "A one-time password was successfully set for "
+	                + selectedUser + ".");
+	        ViewAdminHome.alertNotImplemented.showAndWait();
+
+	    } else {
+
+	        ViewAdminHome.alertNotImplemented.setTitle("*** WARNING ***");
+	        ViewAdminHome.alertNotImplemented.setHeaderText(
+	                "One-Time Password Issue");
+	        ViewAdminHome.alertNotImplemented.setContentText(
+	                "The one-time password could not be set.");
+	        ViewAdminHome.alertNotImplemented.showAndWait();
+	    }
 	}
 	
 	/**********
@@ -300,13 +399,13 @@ public class ControllerAdminHome {
 	 * @param emailAddress	This String holds what is expected to be an email address
 	 */
 	protected static boolean invalidEmailAddress(String emailAddress) {
-		if (emailAddress.length() == 0) {
-			ViewAdminHome.alertEmailError.setContentText(
-					"Correct the email address and try again.");
-			ViewAdminHome.alertEmailError.showAndWait();
-			return true;
-		}
-		return false;
+		String emailError = EmailAddressRecognizer.checkEmailAddress(emailAddress);
+	    if (!emailError.isEmpty()) {
+	        ViewAdminHome.alertEmailError.setContentText(emailError.trim());
+	        ViewAdminHome.alertEmailError.showAndWait();
+	        return true;
+	    }
+	    return false;
 	}
 	
 	/**********

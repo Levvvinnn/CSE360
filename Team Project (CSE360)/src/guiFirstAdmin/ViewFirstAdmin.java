@@ -182,7 +182,13 @@ public class ViewFirstAdmin {
 
 		// Label to display the Passwords do not match error message
 		setupLabelUI(label_PasswordsDoNotMatch, "Arial", 18, width, Pos.CENTER, 0, 300);
-
+		
+		// Labels adjust to window sizing
+		label_PasswordsDoNotMatch.prefWidthProperty().bind(
+		        theRootPane.widthProperty().subtract(100));
+		label_PasswordsDoNotMatch.maxWidthProperty().bind(
+		        theRootPane.widthProperty().subtract(100));
+		
 		setupButtonUI(button_Quit, "Dialog", 18, 250, Pos.CENTER, 300, 520);
 		button_Quit.setOnAction((_) -> {ControllerFirstAdmin.performQuit(); });
 
