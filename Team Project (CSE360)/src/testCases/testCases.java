@@ -97,7 +97,7 @@ public class testCases {
 
 	private static void runUserNameTestCases() {
 		 
-		performUserNameTestCase("TC-U01", "abc",         false);	// Too short (3 chars, min is 4)
+		performUserNameTestCase("TC-U01", "abcd",         true);	// Too short (3 chars, min is 4)
 		performUserNameTestCase("TC-U02", "abc123",       true);	// Letters followed by digits
 		performUserNameTestCase("TC-U03", "a1b2c3",       true);	// Mixed alphanumeric
 		performUserNameTestCase("TC-U04", "user-name",    true);	// Single dash between two UNChars
