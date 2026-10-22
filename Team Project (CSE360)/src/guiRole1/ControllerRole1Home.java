@@ -49,6 +49,10 @@ public class ControllerRole1Home {
 	protected static void performUpdate () {
 		guiUserUpdate.ViewUserUpdate.displayUserUpdate(ViewRole1Home.theStage, ViewRole1Home.theUser);
 	}	
+	
+	protected static void performLessons () {
+	    guiLessons.ViewLessons.displayLessons(ViewRole1Home.theStage, ViewRole1Home.theUser);
+	}
 
 	/**********
 	 * <p> Method: performLogout() </p>
