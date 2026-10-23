@@ -25,28 +25,29 @@ import entityClasses.LessonsLearnedList;
 public class Database {
 
 	// JDBC driver name and database URL
-	static final String JDBC_DRIVER = "org.h2.Driver";
-	static final String DB_URL = "jdbc:h2:~/FoundationDatabase";
+		static final String JDBC_DRIVER = "org.h2.Driver";
+		static final String DB_URL = "jdbc:h2:~/FoundationDatabase";
 
-	// Database credentials
-	static final String USER = "sa";
-	static final String PASS = "";
+		// Database credentials
+		static final String USER = "sa";
+		static final String PASS = "";
 
-	// Shared variables
-	private Connection connection = null;
-	private Statement statement = null;
+		// Shared variables
+		private Connection connection = null;
+		private Statement statement = null;
+		private String dbUrl = DB_URL;
 
-	// Currently logged-in user information
-	private String currentUsername;
-	private String currentPassword;
-	private String currentFirstName;
-	private String currentMiddleName;
-	private String currentLastName;
-	private String currentPreferredFirstName;
-	private String currentEmailAddress;
-	private boolean currentAdminRole;
-	private boolean currentNewRole1;
-	private boolean currentNewRole2;
+		// Currently logged-in user information
+		private String currentUsername;
+		private String currentPassword;
+		private String currentFirstName;
+		private String currentMiddleName;
+		private String currentLastName;
+		private String currentPreferredFirstName;
+		private String currentEmailAddress;
+		private boolean currentAdminRole;
+		private boolean currentNewRole1;
+		private boolean currentNewRole2;
 
 	/*******
 	 * Default constructor.
@@ -72,6 +73,9 @@ public class Database {
 		} catch (ClassNotFoundException e) {
 			System.err.println("JDBC Driver not found: " + e.getMessage());
 		}
+	}
+	public Database (String dbUrl) {
+	    this.dbUrl = dbUrl;
 	}
 
 	/*******
@@ -1441,6 +1445,153 @@ public class Database {
 			e.printStackTrace();
 		}
 		return null;
+	}
+	/*******
+	 * <p> Method: List getLessonsByAuthor(String author) </p>
+	 * 
+	 * <p> Description: Get every lesson added by one contributor, oldest first.</p>
+	 * 
+	 * @param author is the username of the contributor
+	 * 
+	 * @return a list of that contributor's lessons (empty if there are none)
+	 * 
+	 */
+	// Read: get all of one contributor's lessons learned
+	public List<LessonsLearned> getLessonsByAuthor(String author) {
+		List<LessonsLearned> result = new ArrayList<LessonsLearned>();
+		String query = "SELECT * FROM lessonDB WHERE author = ? ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, author);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) result.add(lessonFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	/*******
+	 * <p> Method: List searchLessonsByAuthor(String author, String keyword) </p>
+	 * 
+	 * <p> Description: Get the subset of one contributor's lessons whose title or description
+	 * contains the keyword, ignoring case.  The characters % and _ in the keyword are treated
+	 * as ordinary text, not as SQL wildcards.</p>
+	 * 
+	 * @param author is the username of the contributor
+	 * 
+	 * @param keyword is the text to look for
+	 * 
+	 * @return a list of the matching lessons (empty if there are none)
+	 * 
+	 */
+	// Read: get the subset of lessons learned that match a keyword
+	public List<LessonsLearned> searchLessonsByAuthor(String author, String keyword) {
+		List<LessonsLearned> result = new ArrayList<LessonsLearned>();
+		String pattern = "%" + keyword.toLowerCase().replace("\\", "\\\\").replace("%", "\\%")
+				.replace("_", "\\_") + "%";
+		String query = "SELECT * FROM lessonDB WHERE author = ? AND "
+				+ "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(description) LIKE ? ESCAPE '\\') "
+				+ "ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, author);
+			pstmt.setString(2, pattern);
+			pstmt.setString(3, pattern);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) result.add(lessonFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+	/*******
+	 * <p> Method: boolean updateLesson(int id, String title, String description,
+	 * 		String category) </p>
+	 * 
+	 * <p> Description: Change the title, description and category of a lesson and set its updated
+	 * timestamp to the current time.  The id, author and created timestamp do not change.</p>
+	 * 
+	 * @param id is the id of the lesson
+	 * 
+	 * @param title is the new title
+	 * 
+	 * @param description is the new description
+	 * 
+	 * @param category is the new category
+	 * 
+	 * @return true if a lesson was updated, else false
+	 * 
+	 */
+	// Update: change a lesson learned
+	public boolean updateLesson(int id, String title, String description, String category) {
+		String query = "UPDATE lessonDB SET title = ?, description = ?, category = ?, "
+				+ "updatedAt = ? WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, title);
+			pstmt.setString(2, description);
+			pstmt.setString(3, category);
+			pstmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
+			pstmt.setInt(5, id);
+			return pstmt.executeUpdate() > 0;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+	/*******
+	 * <p> Method: boolean deleteLesson(int id) </p>
+	 * 
+	 * <p> Description: Remove a lesson from the lesson table given its id.</p>
+	 * 
+	 * @param id is the id of the lesson
+	 * 
+	 * @return true if a lesson was deleted, else false
+	 * 
+	 */
+	// Delete: remove a lesson learned
+	public boolean deleteLesson(int id) {
+		String query = "DELETE FROM lessonDB WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setInt(1, id);
+			return pstmt.executeUpdate() > 0;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+
+	/*******
+	 * <p> Method: int getNumberOfLessons() </p>
+	 * 
+	 * <p> Description: Returns the number of lessons currently in the lesson table.</p>
+	 * 
+	 * @return the number of lessons in the database
+	 * 
+	 */
+	public int getNumberOfLessons() {
+		String query = "SELECT COUNT(*) AS count FROM lessonDB";
+		try {
+			ResultSet resultSet = statement.executeQuery(query);
+			if (resultSet.next()) return resultSet.getInt("count");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+
+	/*******
+	 * <p> Method: void deleteAllLessons() </p>
+	 * 
+	 * <p> Description: Removes every lesson.  This exists only so the automated tests can start
+	 * from a known state.  Use it only with the test database.</p>
+	 * 
+	 */
+	public void deleteAllLessons() {
+		try {
+			statement.execute("DELETE FROM lessonDB");
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**************************************************************
