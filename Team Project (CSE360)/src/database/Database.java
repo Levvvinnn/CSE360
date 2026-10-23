@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.UUID;
 
 import entityClasses.User;
+import entityClasses.LessonsLearned;
 import entityClasses.LessonLearned;
-import entityClasses.LessonLearnedList;
+import entityClasses.LessonsLearnedList;
 
 /*******
  * <p> Title: Database Class. </p>
@@ -1306,6 +1307,38 @@ public class Database {
 		}
 		return new LessonLearnedList(lessons);
 	}
+	/*******
+	 * <p> Method: int insertLesson(LessonLearned lesson) </p>
+	 * 
+	 * <p> Description: Creates a new row in the lesson table using the lesson parameter.  The
+	 * database generates the id; this method sets both timestamps to the current time. </p>
+	 * 
+	 * @param lesson specifies the lesson to be added to the database.
+	 * 
+	 * @return the generated id of the new lesson, or -1 if the lesson could not be saved
+	 * 
+	 */
+	// Create: add a lesson learned
+	public int insertLesson(LessonsLearned lesson) {
+		String query = "INSERT INTO lessonDB (title, description, category, author, "
+				+ "createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)";
+		Timestamp now = new Timestamp(System.currentTimeMillis());
+		try (PreparedStatement pstmt = connection.prepareStatement(query,
+				Statement.RETURN_GENERATED_KEYS)) {
+			pstmt.setString(1, lesson.getTitle());
+			pstmt.setString(2, lesson.getDescription());
+			pstmt.setString(3, lesson.getCategory());
+			pstmt.setString(4, lesson.getAuthor());
+			pstmt.setTimestamp(5, now);
+			pstmt.setTimestamp(6, now);
+			pstmt.executeUpdate();
+			ResultSet keys = pstmt.getGeneratedKeys();
+			if (keys.next()) return keys.getInt(1);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
 
 	/**
 	 * Updates an existing lesson learned after validation.
@@ -1386,6 +1419,28 @@ public class Database {
 		}
 		lesson.setEffortVisible(rs.getBoolean("effortVisible"));
 		return lesson;
+	}
+	/*******
+	 * <p> Method: LessonLearned getLessonById(int id) </p>
+	 * 
+	 * <p> Description: Get one lesson given its id.</p>
+	 * 
+	 * @param id is the id of the lesson
+	 * 
+	 * @return the lesson, or null if there is no lesson with that id
+	 * 
+	 */
+	// Read: get one lesson learned
+	public LessonsLearned getLessonById(int id) {
+		String query = "SELECT * FROM lessonDB WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) return lessonFromRow(rs);
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 
 	/**************************************************************
