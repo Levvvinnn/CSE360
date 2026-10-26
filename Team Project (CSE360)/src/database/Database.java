@@ -7,8 +7,6 @@ import java.util.UUID;
 
 import entityClasses.User;
 import entityClasses.LessonsLearned;
-import entityClasses.LessonLearned;
-import entityClasses.LessonLearnedList;
 import entityClasses.LessonsLearnedList;
 
 /*******
@@ -1260,7 +1258,7 @@ public class Database {
 	 * @param lesson lesson to insert
 	 * @return true if the lesson was inserted successfully
 	 */
-	public boolean createLessonLearned(LessonLearned lesson) {
+	public boolean createLessonLearned(LessonsLearned lesson) {
 		if (lesson == null || !lesson.validate().isEmpty()) return false;
 
 		String query = "INSERT INTO lessonLearnedDB "
@@ -1271,7 +1269,7 @@ public class Database {
 		try (PreparedStatement pstmt = connection.prepareStatement(
 				query, Statement.RETURN_GENERATED_KEYS)) {
 			pstmt.setString(1, lesson.getTitle());
-			pstmt.setString(2, lesson.getLessonText());
+			pstmt.setString(2, lesson.getDescription());
 			pstmt.setString(3, lesson.getAuthor());
 			pstmt.setString(4, lesson.getRootCause());
 			pstmt.setString(5, lesson.getRecommendation());
@@ -1299,7 +1297,7 @@ public class Database {
 	 * @param id database id
 	 * @return matching lesson, or null if no lesson is found
 	 */
-	public LessonLearned getLessonLearned(int id) {
+	public LessonsLearned getLessonLearned(int id) {
 		String query = "SELECT * FROM lessonLearnedDB WHERE id = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setInt(1, id);
@@ -1317,8 +1315,8 @@ public class Database {
 	 *
 	 * @return a list wrapper containing all stored lessons
 	 */
-	public LessonLearnedList getAllLessonsLearned() {
-		List<LessonLearned> lessons = new ArrayList<LessonLearned>();
+	public LessonsLearnedList getAllLessonsLearned() {
+		List<LessonsLearned> lessons = new ArrayList<LessonsLearned>();
 		String query = "SELECT * FROM lessonLearnedDB ORDER BY id";
 		try (PreparedStatement pstmt = connection.prepareStatement(query);
 				ResultSet rs = pstmt.executeQuery()) {
@@ -1326,10 +1324,10 @@ public class Database {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		return new LessonLearnedList(lessons);
+		return new LessonsLearnedList(lessons);
 	}
 	/*******
-	 * <p> Method: int insertLesson(LessonLearned lesson) </p>
+	 * <p> Method: int insertLesson(LessonsLearned lesson) </p>
 	 * 
 	 * <p> Description: Creates a new row in the lesson table using the lesson parameter.  The
 	 * database generates the id; this method sets both timestamps to the current time. </p>
@@ -1367,7 +1365,7 @@ public class Database {
 	 * @param lesson lesson containing updated values and a valid id
 	 * @return true if exactly one row was updated
 	 */
-	public boolean updateLessonLearned(LessonLearned lesson) {
+	public boolean updateLessonLearned(LessonsLearned lesson) {
 		if (lesson == null || lesson.getId() <= 0
 				|| !lesson.validate().isEmpty()) return false;
 
@@ -1377,7 +1375,7 @@ public class Database {
 				+ "effortVisible = ? WHERE id = ?";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, lesson.getTitle());
-			pstmt.setString(2, lesson.getLessonText());
+			pstmt.setString(2, lesson.getDescription());
 			pstmt.setString(3, lesson.getAuthor());
 			pstmt.setString(4, lesson.getRootCause());
 			pstmt.setString(5, lesson.getRecommendation());
@@ -1420,10 +1418,11 @@ public class Database {
 	 * @return the populated lesson
 	 * @throws SQLException if a column cannot be read
 	 */
-	private LessonLearned lessonLearnedFromRow(ResultSet rs) throws SQLException {
-		LessonLearned lesson = new LessonLearned(
-				rs.getInt("id"), rs.getString("title"),
-				rs.getString("lessonText"), rs.getString("author"));
+	private LessonsLearned lessonLearnedFromRow(ResultSet rs) throws SQLException {
+		LessonsLearned lesson = new LessonsLearned(
+				rs.getString("author"), rs.getString("title"),
+				rs.getString("lessonText"), rs.getString("category"));
+		lesson.setId(rs.getInt("id"));
 		lesson.setRootCause(rs.getString("rootCause"));
 		lesson.setRecommendation(rs.getString("recommendation"));
 		lesson.setKeywords(rs.getString("keywords"));
@@ -1463,7 +1462,7 @@ public class Database {
 	}
 
 	/*******
-	 * <p> Method: LessonLearned getLessonById(int id) </p>
+	 * <p> Method: LessonsLearned getLessonById(int id) </p>
 	 * 
 	 * <p> Description: Get one lesson given its id.</p>
 	 * 
