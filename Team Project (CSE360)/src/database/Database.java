@@ -7,6 +7,7 @@ import java.util.UUID;
 
 import entityClasses.User;
 import entityClasses.LessonsLearned;
+import entityClasses.LessonsLearnedList;
 
 /*******
  * <p> Title: Database Class. </p>
@@ -23,38 +24,34 @@ import entityClasses.LessonsLearned;
 public class Database {
 
 	// JDBC driver name and database URL
-	static final String JDBC_DRIVER = "org.h2.Driver";
-	static final String DB_URL = "jdbc:h2:~/FoundationDatabase";
+		static final String JDBC_DRIVER = "org.h2.Driver";
+		static final String DB_URL = "jdbc:h2:~/FoundationDatabase";
 
-	// Database credentials
-	static final String USER = "sa";
-	static final String PASS = "";
+		// Database credentials
+		static final String USER = "sa";
+		static final String PASS = "";
 
-	// Shared variables
-	private Connection connection = null;
-	private Statement statement = null;
-	private String dbUrl = DB_URL;
+		// Shared variables
+		private Connection connection = null;
+		private Statement statement = null;
+		private String dbUrl = DB_URL;
 
-	// Currently logged-in user information
-	private String currentUsername;
-	private String currentPassword;
-	private String currentFirstName;
-	private String currentMiddleName;
-	private String currentLastName;
-	private String currentPreferredFirstName;
-	private String currentEmailAddress;
-	private boolean currentAdminRole;
-	private boolean currentNewRole1;
-	private boolean currentNewRole2;
+		// Currently logged-in user information
+		private String currentUsername;
+		private String currentPassword;
+		private String currentFirstName;
+		private String currentMiddleName;
+		private String currentLastName;
+		private String currentPreferredFirstName;
+		private String currentEmailAddress;
+		private boolean currentAdminRole;
+		private boolean currentNewRole1;
+		private boolean currentNewRole2;
 
 	/*******
 	 * Default constructor.
 	 */
 	public Database() {
-	}
-	
-	public Database (String dbUrl) {
-	    this.dbUrl = dbUrl;
 	}
 
 	/*******
@@ -75,6 +72,9 @@ public class Database {
 		} catch (ClassNotFoundException e) {
 			System.err.println("JDBC Driver not found: " + e.getMessage());
 		}
+	}
+	public Database (String dbUrl) {
+	    this.dbUrl = dbUrl;
 	}
 
 	/*******
@@ -119,7 +119,35 @@ public class Database {
 				+ "role VARCHAR(10))";
 
 		statement.execute(invitationCodesTable);
-		
+
+		/*
+		 * This table stores the lessons learned for HW2.
+		 * The table is created only if it does not already exist so
+		 * previously stored lessons remain available between executions.
+		 */
+		String lessonLearnedTable =
+				"CREATE TABLE IF NOT EXISTS lessonLearnedDB ("
+				+ "id INT AUTO_INCREMENT PRIMARY KEY, "
+				+ "title VARCHAR(100) NOT NULL, "
+				+ "lessonText VARCHAR(2000) NOT NULL, "
+				+ "author VARCHAR(255) NOT NULL, "
+				+ "rootCause VARCHAR(2000) DEFAULT '', "
+				+ "recommendation VARCHAR(2000) DEFAULT '', "
+				+ "keywords VARCHAR(1000) DEFAULT '', "
+				+ "timeEffort VARCHAR(255) DEFAULT '', "
+				+ "category VARCHAR(100) DEFAULT '', "
+				+ "isLocked BOOLEAN DEFAULT FALSE, "
+				+ "lockedFields VARCHAR(4000) DEFAULT '', "
+				+ "effortVisible BOOLEAN DEFAULT TRUE)";
+
+		statement.execute(lessonLearnedTable);
+
+		/* Restored during PR review: main's lesson methods (insertLesson,
+		 * updateLesson, deleteLesson, getLessonById, getLessonsByAuthor,
+		 * searchLessonsByAuthor, getNumberOfLessons, deleteAllLessons) all query
+		 * lessonDB.  Creating lessonLearnedDB does not create lessonDB, so without
+		 * this statement every one of those methods fails at runtime with
+		 * "table not found". */
 		String lessonTable = "CREATE TABLE IF NOT EXISTS lessonDB ("
 		        + "id INT AUTO_INCREMENT PRIMARY KEY, "
 		        + "title VARCHAR(100), "
@@ -129,10 +157,22 @@ public class Database {
 		        + "createdAt TIMESTAMP, "
 		        + "updatedAt TIMESTAMP)";
 		statement.execute(lessonTable);
+
+		// Add epic columns to existing databases without deleting saved lessons.
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS rootCause VARCHAR(2000) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS recommendation VARCHAR(2000) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS keywords VARCHAR(1000) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS timeEffort VARCHAR(255) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS isLocked BOOLEAN DEFAULT FALSE");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS lockedFields VARCHAR(4000) DEFAULT ''");
+		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS effortVisible BOOLEAN DEFAULT TRUE");
 	}
 
 	/*******
 	 * Returns true if there are no users in the database.
+	 *
+	 * @return true if the database contains no users; false otherwise
 	 */
 	public boolean isDatabaseEmpty() {
 
@@ -154,6 +194,8 @@ public class Database {
 
 	/*******
 	 * Returns the number of users in the database.
+	 *
+	 * @return the number of users currently in the database
 	 */
 	public int getNumberOfUsers() {
 
@@ -224,6 +266,8 @@ public class Database {
 
 	/*******
 	 * Returns a list of all usernames.
+	 *
+	 * @return the list of usernames in the database
 	 */
 	public List<String> getUserList() {
 
@@ -249,23 +293,29 @@ public class Database {
 		return userList;
 	}
 
-/*******
- * <p> Method: List<User> getAllUsers() </p>
- * 
- * <p> Description: Generate a List of User objects, one for each user record currently in the
- * userDB table. Used by the Admin "List All Users" function to display the username, full name,
- * email address, and assigned roles for every user in the system. </p>
- * 
- * @return a list of User objects, one per row in the userDB table. The list is empty (never
- * 			null) if there are no users or if a database error occurs.
- * 
- */
+	/*******
+	 * <p> Method: List<User> getAllUsers() </p>
+	 *
+	 * <p> Description: Generate a List of User objects, one for each user record currently in the
+	 * userDB table. Used by the Admin "List All Users" function to display the username, full name,
+	 * email address, and assigned roles for every user in the system. </p>
+	 *
+	 * @return a list of User objects, one per row in the userDB table. The list is empty (never
+	 * 			null) if there are no users or if a database error occurs.
+	 *
+	 */
 	public List<User> getAllUsers() {
+
 		List<User> allUsers = new ArrayList<User>();
 		String query = "SELECT * FROM userDB";
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+
+		try (PreparedStatement pstmt =
+				connection.prepareStatement(query)) {
+
 			ResultSet rs = pstmt.executeQuery();
+
 			while (rs.next()) {
+
 				User user = new User(
 						rs.getString("userName"),
 						rs.getString("password"),
@@ -277,57 +327,73 @@ public class Database {
 						rs.getBoolean("adminRole"),
 						rs.getBoolean("newRole1"),
 						rs.getBoolean("newRole2"));
+
 				allUsers.add(user);
 			}
+
 		} catch (SQLException e) {
-	        e.printStackTrace();
-	    }
+			e.printStackTrace();
+		}
+
 		return allUsers;
 	}
 
-/*******
- * <p> Method: boolean loginAdmin(User user) </p>
- * 
- * <p> Description: Check to see that a user with the specified username, password, and role
- * 		is the same as a row in the table for the username, password, and role. </p>
- * 
- * @param user specifies the specific user that should be logged in playing the Admin role.
- * 
- * @return true if the specified user has been logged in as an Admin else false.
- * 
- */
-	public boolean loginAdmin(User user){
+	/*******
+	 * <p> Method: boolean loginAdmin(User user) </p>
+	 *
+	 * <p> Description: Check to see that a user with the specified username, password, and role
+	 * 		is the same as a row in the table for the username, password, and role. </p>
+	 *
+	 * @param user specifies the specific user that should be logged in playing the Admin role.
+	 *
+	 * @return true if the specified user has been logged in as an Admin else false.
+	 *
+	 */
+	public boolean loginAdmin(User user) {
+
 		// Validates an admin user's login credentials so the user can login in as an Admin.
-		String query = "SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
+		String query =
+				"SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
 				+ "adminRole = TRUE";
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+
+		try (PreparedStatement pstmt =
+				connection.prepareStatement(query)) {
+
 			pstmt.setString(1, user.getUserName());
 			pstmt.setString(2, user.getPassword());
+
 			ResultSet rs = pstmt.executeQuery();
-			return rs.next();	// If a row is returned, rs.next() will return true		
-		} catch  (SQLException e) {
-	        e.printStackTrace();
-	    }
+
+			return rs.next();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
 		return false;
 	}
-	
-	
-/*******
- * <p> Method: boolean loginRole1(User user) </p>
- * 
- * <p> Description: Check to see that a user with the specified username, password, and role
- * 		is the same as a row in the table for the username, password, and role. </p>
- * 
- * @param user specifies the specific user that should be logged in playing the Student role.
- * 
- * @return true if the specified user has been logged in as an Student else false.
- * 
- */
+
+	/*******
+	 * <p> Method: boolean loginRole1(User user) </p>
+	 *
+	 * <p> Description: Check to see that a user with the specified username, password, and role
+	 * 		is the same as a row in the table for the username, password, and role. </p>
+	 *
+	 * @param user specifies the specific user that should be logged in playing the Student role.
+	 *
+	 * @return true if the specified user has been logged in as an Student else false.
+	 *
+	 */
 	public boolean loginRole1(User user) {
+
 		// Validates a student user's login credentials.
-		String query = "SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
+		String query =
+				"SELECT * FROM userDB WHERE userName = ? AND password = ? AND "
 				+ "newRole1 = TRUE";
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+
+		try (PreparedStatement pstmt =
+				connection.prepareStatement(query)) {
+
 			pstmt.setString(1, user.getUserName());
 			pstmt.setString(2, user.getPassword());
 
@@ -447,6 +513,8 @@ public class Database {
 
 	/*******
 	 * Gets the number of outstanding invitations.
+	 *
+	 * @return the number of outstanding invitations
 	 */
 	public int getNumberOfInvitations() {
 
@@ -454,6 +522,7 @@ public class Database {
 				"SELECT COUNT(*) AS count FROM InvitationCodes";
 
 		try {
+
 			ResultSet resultSet =
 					statement.executeQuery(query);
 
@@ -880,27 +949,35 @@ public class Database {
 			e.printStackTrace();
 		}
 	}
+
 	/**********
-	 *  Updates a user's password.
+	 * Updates a user's password.
 	 */
-	public boolean updatePassword(String userName, String newPassword) {
- 
-		String query = "UPDATE cse360users SET password = ? WHERE userName = ?";
- 
-		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
- 
+	public boolean updatePassword(
+			String userName,
+			String newPassword) {
+
+		String query =
+				"UPDATE cse360users SET password = ? "
+				+ "WHERE userName = ?";
+
+		try (PreparedStatement pstmt =
+				connection.prepareStatement(query)) {
+
 			pstmt.setString(1, newPassword);
 			pstmt.setString(2, userName);
- 
+
 			return pstmt.executeUpdate() == 1;
- 
+
 		} catch (SQLException e) {
-			System.err.println("*** ERROR *** updatePassword: " + e.getMessage());
+			System.err.println(
+					"*** ERROR *** updatePassword: "
+					+ e.getMessage());
+
 			e.printStackTrace();
 			return false;
 		}
 	}
-
 
 	/*******
 	 * Gets all account information for a user.
@@ -922,19 +999,33 @@ public class Database {
 				return false;
 			}
 
-			currentUsername = rs.getString("userName");
-			currentPassword = rs.getString("password");
-			currentFirstName = rs.getString("firstName");
-			currentMiddleName = rs.getString("middleName");
-			currentLastName = rs.getString("lastName");
+			currentUsername =
+					rs.getString("userName");
+
+			currentPassword =
+					rs.getString("password");
+
+			currentFirstName =
+					rs.getString("firstName");
+
+			currentMiddleName =
+					rs.getString("middleName");
+
+			currentLastName =
+					rs.getString("lastName");
+
 			currentPreferredFirstName =
 					rs.getString("preferredFirstName");
+
 			currentEmailAddress =
 					rs.getString("emailAddress");
+
 			currentAdminRole =
 					rs.getBoolean("adminRole");
+
 			currentNewRole1 =
 					rs.getBoolean("newRole1");
+
 			currentNewRole2 =
 					rs.getBoolean("newRole2");
 
@@ -1054,7 +1145,8 @@ public class Database {
 			String oneTimePassword) {
 
 		// Validate the username before using it.
-		if (username == null || username.length() == 0) {
+		if (username == null ||
+				username.length() == 0) {
 			return false;
 		}
 
@@ -1095,6 +1187,10 @@ public class Database {
 	/*******
 	 * Returns whether a user's password is currently a
 	 * one-time password.
+	 *
+	 * @param username the username being checked
+	 *
+	 * @return true if the user's password is marked as one-time
 	 */
 	public boolean isOneTimePassword(String username) {
 
@@ -1123,6 +1219,10 @@ public class Database {
 	/*******
 	 * Clears the one-time password flag after the user
 	 * successfully changes their password.
+	 *
+	 * @param username the username whose flag should be cleared
+	 *
+	 * @return true if the database row was updated
 	 */
 	public boolean clearOneTimePassword(String username) {
 
@@ -1147,9 +1247,87 @@ public class Database {
 
 		return false;
 	}
-	
+
+	/**************************************************************
+	 * HW2 LESSONS LEARNED CRUD
+	 **************************************************************/
+
+	/**
+	 * Creates a lesson learned after validating its content.
+	 *
+	 * @param lesson lesson to insert
+	 * @return true if the lesson was inserted successfully
+	 */
+	public boolean createLessonLearned(LessonsLearned lesson) {
+		if (lesson == null || !lesson.validate().isEmpty()) return false;
+
+		String query = "INSERT INTO lessonLearnedDB "
+				+ "(title, lessonText, author, rootCause, recommendation, "
+				+ "keywords, timeEffort, category, isLocked, lockedFields, effortVisible) "
+				+ "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+		try (PreparedStatement pstmt = connection.prepareStatement(
+				query, Statement.RETURN_GENERATED_KEYS)) {
+			pstmt.setString(1, lesson.getTitle());
+			pstmt.setString(2, lesson.getDescription());
+			pstmt.setString(3, lesson.getAuthor());
+			pstmt.setString(4, lesson.getRootCause());
+			pstmt.setString(5, lesson.getRecommendation());
+			pstmt.setString(6, lesson.getKeywords());
+			pstmt.setString(7, lesson.getTimeEffort());
+			pstmt.setString(8, lesson.getCategory());
+			pstmt.setBoolean(9, lesson.getIsLocked());
+			pstmt.setString(10, String.join(",", lesson.getLockedFields()));
+			pstmt.setBoolean(11, lesson.getEffortVisible());
+
+			if (pstmt.executeUpdate() != 1) return false;
+			try (ResultSet keys = pstmt.getGeneratedKeys()) {
+				if (keys.next()) lesson.setId(keys.getInt(1));
+			}
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	/**
+	 * Reads one lesson learned by its database id.
+	 *
+	 * @param id database id
+	 * @return matching lesson, or null if no lesson is found
+	 */
+	public LessonsLearned getLessonLearned(int id) {
+		String query = "SELECT * FROM lessonLearnedDB WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setInt(1, id);
+			try (ResultSet rs = pstmt.executeQuery()) {
+				if (rs.next()) return lessonLearnedFromRow(rs);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	/**
+	 * Returns all lessons in ascending id order.
+	 *
+	 * @return a list wrapper containing all stored lessons
+	 */
+	public LessonsLearnedList getAllLessonsLearned() {
+		List<LessonsLearned> lessons = new ArrayList<LessonsLearned>();
+		String query = "SELECT * FROM lessonLearnedDB ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query);
+				ResultSet rs = pstmt.executeQuery()) {
+			while (rs.next()) lessons.add(lessonLearnedFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return new LessonsLearnedList(lessons);
+	}
 	/*******
-	 * <p> Method: int insertLesson(LessonLearned lesson) </p>
+	 * <p> Method: int insertLesson(LessonsLearned lesson) </p>
 	 * 
 	 * <p> Description: Creates a new row in the lesson table using the lesson parameter.  The
 	 * database generates the id; this method sets both timestamps to the current time. </p>
@@ -1181,9 +1359,110 @@ public class Database {
 		return -1;
 	}
 
+	/**
+	 * Updates an existing lesson learned after validation.
+	 *
+	 * @param lesson lesson containing updated values and a valid id
+	 * @return true if exactly one row was updated
+	 */
+	public boolean updateLessonLearned(LessonsLearned lesson) {
+		if (lesson == null || lesson.getId() <= 0
+				|| !lesson.validate().isEmpty()) return false;
+
+		String query = "UPDATE lessonLearnedDB SET title = ?, lessonText = ?, "
+				+ "author = ?, rootCause = ?, recommendation = ?, keywords = ?, "
+				+ "timeEffort = ?, category = ?, isLocked = ?, lockedFields = ?, "
+				+ "effortVisible = ? WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, lesson.getTitle());
+			pstmt.setString(2, lesson.getDescription());
+			pstmt.setString(3, lesson.getAuthor());
+			pstmt.setString(4, lesson.getRootCause());
+			pstmt.setString(5, lesson.getRecommendation());
+			pstmt.setString(6, lesson.getKeywords());
+			pstmt.setString(7, lesson.getTimeEffort());
+			pstmt.setString(8, lesson.getCategory());
+			pstmt.setBoolean(9, lesson.getIsLocked());
+			pstmt.setString(10, String.join(",", lesson.getLockedFields()));
+			pstmt.setBoolean(11, lesson.getEffortVisible());
+			pstmt.setInt(12, lesson.getId());
+			return pstmt.executeUpdate() == 1;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	/**
+	 * Deletes a lesson learned by database id.
+	 *
+	 * @param id database id
+	 * @return true if exactly one row was deleted
+	 */
+	public boolean deleteLessonLearned(int id) {
+		if (id <= 0) return false;
+		String query = "DELETE FROM lessonLearnedDB WHERE id = ?";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setInt(1, id);
+			return pstmt.executeUpdate() == 1;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	/**
+	 * Builds a lesson entity from the current database row.
+	 *
+	 * @param rs result set positioned at a lesson row
+	 * @return the populated lesson
+	 * @throws SQLException if a column cannot be read
+	 */
+	private LessonsLearned lessonLearnedFromRow(ResultSet rs) throws SQLException {
+		LessonsLearned lesson = new LessonsLearned(
+				rs.getString("author"), rs.getString("title"),
+				rs.getString("lessonText"), rs.getString("category"));
+		lesson.setId(rs.getInt("id"));
+		lesson.setRootCause(rs.getString("rootCause"));
+		lesson.setRecommendation(rs.getString("recommendation"));
+		lesson.setKeywords(rs.getString("keywords"));
+		lesson.setTimeEffort(rs.getString("timeEffort"));
+		lesson.setCategory(rs.getString("category"));
+		lesson.setIsLocked(rs.getBoolean("isLocked"));
+		String storedLockedFields = rs.getString("lockedFields");
+		if (storedLockedFields != null && !storedLockedFields.isEmpty()) {
+			java.util.Set<String> fields = new java.util.HashSet<String>();
+			for (String field : storedLockedFields.split(",")) {
+				if (!field.trim().isEmpty()) fields.add(field.trim());
+			}
+			lesson.setLockedFields(fields);
+		}
+		lesson.setEffortVisible(rs.getBoolean("effortVisible"));
+		return lesson;
+	}
 
 	/*******
-	 * <p> Method: LessonLearned getLessonById(int id) </p>
+	 * <p> Method: LessonsLearned lessonFromRow(ResultSet rs) </p>
+	 *
+	 * <p> Description: Builds a LessonsLearned entity from the current row of the
+	 * lessonDB result set.  Restored during PR review: the lessonLearnedDB mapper
+	 * above had taken this method's name, which left getLessonById,
+	 * getLessonsByAuthor and searchLessonsByAuthor without a row mapper. </p>
+	 *
+	 * @param rs result set positioned at a lessonDB row
+	 *
+	 * @return the populated LessonsLearned entity
+	 *
+	 * @throws SQLException if a column cannot be read
+	 */
+	private LessonsLearned lessonFromRow(ResultSet rs) throws SQLException {
+		return new LessonsLearned(rs.getInt("id"), rs.getString("author"), rs.getString("title"),
+				rs.getString("description"), rs.getString("category"),
+				rs.getTimestamp("createdAt"), rs.getTimestamp("updatedAt"));
+	}
+
+	/*******
+	 * <p> Method: LessonsLearned getLessonById(int id) </p>
 	 * 
 	 * <p> Description: Get one lesson given its id.</p>
 	 * 
@@ -1204,8 +1483,6 @@ public class Database {
 		}
 		return null;
 	}
-
-
 	/*******
 	 * <p> Method: List getLessonsByAuthor(String author) </p>
 	 * 
@@ -1229,8 +1506,6 @@ public class Database {
 		}
 		return result;
 	}
-
-
 	/*******
 	 * <p> Method: List searchLessonsByAuthor(String author, String keyword) </p>
 	 * 
@@ -1264,8 +1539,6 @@ public class Database {
 		}
 		return result;
 	}
-
-
 	/*******
 	 * <p> Method: boolean updateLesson(int id, String title, String description,
 	 * 		String category) </p>
@@ -1300,8 +1573,6 @@ public class Database {
 		}
 		return false;
 	}
-
-
 	/*******
 	 * <p> Method: boolean deleteLesson(int id) </p>
 	 * 
@@ -1360,64 +1631,109 @@ public class Database {
 		}
 	}
 
-
-	// Private helper that builds a LessonLearned from the current row of a result set
-	private LessonsLearned lessonFromRow(ResultSet rs) throws SQLException {
-		return new LessonsLearned(rs.getInt("id"), rs.getString("author"), rs.getString("title"),
-				rs.getString("description"), rs.getString("category"),
-				rs.getTimestamp("createdAt"), rs.getTimestamp("updatedAt"));
-	}
-
 	/**************************************************************
 	 * CURRENT USER GETTERS
 	 **************************************************************/
 
+	/*******
+	 * Returns the current username.
+	 *
+	 * @return the current username
+	 */
 	public String getCurrentUsername() {
 		return currentUsername;
 	}
 
+	/*******
+	 * Returns the current password.
+	 *
+	 * @return the current password
+	 */
 	public String getCurrentPassword() {
 		return currentPassword;
 	}
 
+	/*******
+	 * Returns the current first name.
+	 *
+	 * @return the current first name
+	 */
 	public String getCurrentFirstName() {
 		return currentFirstName;
 	}
 
+	/*******
+	 * Returns the current middle name.
+	 *
+	 * @return the current middle name
+	 */
 	public String getCurrentMiddleName() {
 		return currentMiddleName;
 	}
 
+	/*******
+	 * Returns the current last name.
+	 *
+	 * @return the current last name
+	 */
 	public String getCurrentLastName() {
 		return currentLastName;
 	}
 
+	/*******
+	 * Returns the current preferred first name.
+	 *
+	 * @return the current preferred first name
+	 */
 	public String getCurrentPreferredFirstName() {
 		return currentPreferredFirstName;
 	}
 
+	/*******
+	 * Returns the current email address.
+	 *
+	 * @return the current email address
+	 */
 	public String getCurrentEmailAddress() {
 		return currentEmailAddress;
 	}
 
+	/*******
+	 * Returns whether the current user has the administrator role.
+	 *
+	 * @return true if the current user is an administrator; false otherwise
+	 */
 	public boolean getCurrentAdminRole() {
 		return currentAdminRole;
 	}
 
+	/*******
+	 * Returns whether the current user has the Contributor role.
+	 *
+	 * @return true if the current user has the Contributor role
+	 */
 	public boolean getCurrentNewRole1() {
 		return currentNewRole1;
 	}
 
+	/*******
+	 * Returns whether the current user has the Viewer role.
+	 *
+	 * @return true if the current user has the Viewer role
+	 */
 	public boolean getCurrentNewRole2() {
 		return currentNewRole2;
 	}
 
 	/*******
 	 * Dumps the database to the console.
+	 *
+	 * @throws SQLException if a database access error occurs
 	 */
 	public void dump() throws SQLException {
 
-		String query = "SELECT * FROM userDB";
+		String query =
+				"SELECT * FROM userDB";
 
 		ResultSet resultSet =
 				statement.executeQuery(query);
@@ -1449,6 +1765,7 @@ public class Database {
 	public void closeConnection() {
 
 		try {
+
 			if (statement != null)
 				statement.close();
 
@@ -1457,6 +1774,7 @@ public class Database {
 		}
 
 		try {
+
 			if (connection != null)
 				connection.close();
 

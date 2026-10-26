@@ -1,9 +1,12 @@
 package entityClasses;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 /*******
- * <p> Title: LessonLearned Class </p>
+ * <p> Title: LessonsLearned Class </p>
  * 
  * <p> Description: This entity class represents one lesson learned in the system.  It holds the
  * "core information" a contributor enters (title, description, category) and the values the
@@ -33,8 +36,26 @@ public class LessonsLearned {
 	private Timestamp createdAt;
 	private Timestamp updatedAt;
 	
+	/*
+	 * Additional lesson content attributes from the team epics.  Merged in from the
+	 * duplicate entity class this one replaces, so that a single lesson entity under the
+	 * required name serves the whole system.
+	 */
+	private String rootCause;
+	private String recommendation;
+	private String keywords;
+	private String timeEffort;
+	
+	/*
+	 * Curator controls: a curator may lock the whole lesson, lock individual fields, and
+	 * hide the time/effort information from contributors.
+	 */
+	private boolean isLocked;
+	private Set<String> lockedFields;
+	private boolean effortVisible;
+	
 	/*****
-	 * <p> Method: LessonLearned(String author, String title, String description,
+	 * <p> Method: LessonsLearned(String author, String title, String description,
 	 * 		String category) </p>
 	 * 
 	 * <p> Description: This constructor is used for a new lesson that has not yet been saved.
@@ -54,10 +75,17 @@ public class LessonsLearned {
 		setTitle(title);
 		setDescription(description);
 		setCategory(category);
+		this.rootCause = "";
+		this.recommendation = "";
+		this.keywords = "";
+		this.timeEffort = "";
+		this.isLocked = false;
+		this.lockedFields = new HashSet<String>();
+		this.effortVisible = true;
 	}
 	
 	/*****
-	 * <p> Method: LessonLearned(int id, String author, String title, String description,
+	 * <p> Method: LessonsLearned(int id, String author, String title, String description,
 	 * 		String category, Timestamp createdAt, Timestamp updatedAt) </p>
 	 * 
 	 * <p> Description: This constructor is used when a lesson is read back from the database. </p>
@@ -148,4 +176,184 @@ public class LessonsLearned {
 	 * @param s the new category (spaces at the ends are removed)
 	 */
 	public void setCategory(String s) { category = clean(s); }
+	
+	/*****
+	 * <p> Method: void setId(int id) </p>
+	 * @param id the database id assigned to this lesson
+	 */
+	public void setId(int id) { this.id = id; }
+	
+	/*****
+	 * <p> Method: void setAuthor(String s) </p>
+	 * @param s the username of the contributor who added the lesson
+	 */
+	public void setAuthor(String s) { author = clean(s); }
+	
+	/*****
+	 * <p> Method: String getRootCause() </p>
+	 * @return the root cause of the problem the lesson describes
+	 */
+	public String getRootCause() { return rootCause; }
+	
+	/*****
+	 * <p> Method: void setRootCause(String s) </p>
+	 * @param s the new root cause (spaces at the ends are removed)
+	 */
+	public void setRootCause(String s) { rootCause = clean(s); }
+	
+	/*****
+	 * <p> Method: String getRecommendation() </p>
+	 * @return the recommendation for future contributors
+	 */
+	public String getRecommendation() { return recommendation; }
+	
+	/*****
+	 * <p> Method: void setRecommendation(String s) </p>
+	 * @param s the new recommendation (spaces at the ends are removed)
+	 */
+	public void setRecommendation(String s) { recommendation = clean(s); }
+	
+	/*****
+	 * <p> Method: String getKeywords() </p>
+	 * @return the lesson keywords, stored as one text value
+	 */
+	public String getKeywords() { return keywords; }
+	
+	/*****
+	 * <p> Method: void setKeywords(String s) </p>
+	 * @param s the new keywords (spaces at the ends are removed)
+	 */
+	public void setKeywords(String s) { keywords = clean(s); }
+	
+	/*****
+	 * <p> Method: String getTimeEffort() </p>
+	 * @return the time and effort information for the lesson
+	 */
+	public String getTimeEffort() { return timeEffort; }
+	
+	/*****
+	 * <p> Method: void setTimeEffort(String s) </p>
+	 * @param s the new time and effort information (spaces at the ends are removed)
+	 */
+	public void setTimeEffort(String s) { timeEffort = clean(s); }
+	
+	/*****
+	 * <p> Method: boolean getIsLocked() </p>
+	 * @return true if the whole lesson is locked against contributor edits
+	 */
+	public boolean getIsLocked() { return isLocked; }
+	
+	/*****
+	 * <p> Method: boolean isLocked() </p>
+	 * @return true if the whole lesson is locked against contributor edits
+	 */
+	public boolean isLocked() { return isLocked; }
+	
+	/*****
+	 * <p> Method: void setIsLocked(boolean isLocked) </p>
+	 * @param isLocked whether the whole lesson is locked
+	 */
+	public void setIsLocked(boolean isLocked) { this.isLocked = isLocked; }
+	
+	/*****
+	 * <p> Method: void setLocked(boolean isLocked) </p>
+	 * @param isLocked whether the whole lesson is locked
+	 */
+	public void setLocked(boolean isLocked) { this.isLocked = isLocked; }
+	
+	/*****
+	 * <p> Method: Set getLockedFields() </p>
+	 * @return a read-only copy of the names of the fields a contributor cannot edit
+	 */
+	public Set<String> getLockedFields() {
+		return Collections.unmodifiableSet(new HashSet<String>(lockedFields));
+	}
+	
+	/*****
+	 * <p> Method: void setLockedFields(Set fields) </p>
+	 * @param fields the names of the fields a contributor cannot edit; null clears them all
+	 */
+	public void setLockedFields(Set<String> fields) {
+		this.lockedFields = (fields == null) ? new HashSet<String>() : new HashSet<String>(fields);
+	}
+	
+	/*****
+	 * <p> Method: void setFieldLocked(String fieldName, boolean locked) </p>
+	 * 
+	 * <p> Description: Locks or unlocks one named field.  An empty or null field name is
+	 * ignored so that a bad name cannot add a meaningless entry. </p>
+	 * 
+	 * @param fieldName the name of the field to lock or unlock
+	 * 
+	 * @param locked true to lock the field, false to unlock it
+	 */
+	public void setFieldLocked(String fieldName, boolean locked) {
+		String field = clean(fieldName);
+		if (field.isEmpty()) return;
+		if (locked) lockedFields.add(field);
+		else lockedFields.remove(field);
+	}
+	
+	/*****
+	 * <p> Method: boolean isFieldLocked(String fieldName) </p>
+	 * @param fieldName the name of the field to check
+	 * @return true if that field is locked
+	 */
+	public boolean isFieldLocked(String fieldName) {
+		return fieldName != null && lockedFields.contains(fieldName.trim());
+	}
+	
+	/*****
+	 * <p> Method: boolean getEffortVisible() </p>
+	 * @return true if the time/effort information is visible to contributors
+	 */
+	public boolean getEffortVisible() { return effortVisible; }
+	
+	/*****
+	 * <p> Method: boolean isEffortVisible() </p>
+	 * @return true if the time/effort information is visible to contributors
+	 */
+	public boolean isEffortVisible() { return effortVisible; }
+	
+	/*****
+	 * <p> Method: void setEffortVisible(boolean effortVisible) </p>
+	 * @param effortVisible whether the time/effort information is visible to contributors
+	 */
+	public void setEffortVisible(boolean effortVisible) { this.effortVisible = effortVisible; }
+	
+	/*****
+	 * <p> Method: String validate() </p>
+	 * 
+	 * <p> Description: Checks the lesson against the limits of the lessonLearnedDB table
+	 * before it is stored.  This covers the merged epic attributes, which LessonValidator
+	 * does not check.  Note that LessonValidator.DESCRIPTION_MAX is 1000 for the lessonDB
+	 * path, while the lessonLearnedDB column allows 2000. </p>
+	 * 
+	 * @return an empty string when the lesson is valid, else the first problem found
+	 */
+	public String validate() {
+		if (title.isEmpty()) return "The lesson title cannot be empty.";
+		if (title.length() > 100) return "The lesson title cannot be longer than 100 characters.";
+		if (description.isEmpty()) return "The lesson description cannot be empty.";
+		if (description.length() > 2000)
+			return "The lesson description cannot be longer than 2000 characters.";
+		if (author == null || author.isEmpty()) return "The lesson author cannot be empty.";
+		if (rootCause.length() > 2000) return "Root cause cannot be longer than 2000 characters.";
+		if (recommendation.length() > 2000)
+			return "Recommendation cannot be longer than 2000 characters.";
+		if (keywords.length() > 1000) return "Keywords cannot be longer than 1000 characters.";
+		if (timeEffort.length() > 255)
+			return "Time/effort information cannot be longer than 255 characters.";
+		if (category.length() > 100) return "Category cannot be longer than 100 characters.";
+		return "";
+	}
+	
+	/*****
+	 * <p> Method: String toString() </p>
+	 * @return the lesson in a form suitable for display in a list
+	 */
+	@Override
+	public String toString() {
+		return "[" + id + "] " + title + " - " + author;
+	}
 }
