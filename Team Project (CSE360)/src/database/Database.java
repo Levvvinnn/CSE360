@@ -8,6 +8,7 @@ import java.util.UUID;
 import entityClasses.User;
 import entityClasses.LessonsLearned;
 import entityClasses.LessonLearned;
+import entityClasses.LessonLearnedList;
 import entityClasses.LessonsLearnedList;
 
 /*******
@@ -142,6 +143,22 @@ public class Database {
 				+ "effortVisible BOOLEAN DEFAULT TRUE)";
 
 		statement.execute(lessonLearnedTable);
+
+		/* Restored during PR review: main's lesson methods (insertLesson,
+		 * updateLesson, deleteLesson, getLessonById, getLessonsByAuthor,
+		 * searchLessonsByAuthor, getNumberOfLessons, deleteAllLessons) all query
+		 * lessonDB.  Creating lessonLearnedDB does not create lessonDB, so without
+		 * this statement every one of those methods fails at runtime with
+		 * "table not found". */
+		String lessonTable = "CREATE TABLE IF NOT EXISTS lessonDB ("
+		        + "id INT AUTO_INCREMENT PRIMARY KEY, "
+		        + "title VARCHAR(100), "
+		        + "description VARCHAR(1000), "
+		        + "category VARCHAR(20), "
+		        + "author VARCHAR(255), "
+		        + "createdAt TIMESTAMP, "
+		        + "updatedAt TIMESTAMP)";
+		statement.execute(lessonTable);
 
 		// Add epic columns to existing databases without deleting saved lessons.
 		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS rootCause VARCHAR(2000) DEFAULT ''");
@@ -1287,7 +1304,7 @@ public class Database {
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setInt(1, id);
 			try (ResultSet rs = pstmt.executeQuery()) {
-				if (rs.next()) return lessonFromRow(rs);
+				if (rs.next()) return lessonLearnedFromRow(rs);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -1305,7 +1322,7 @@ public class Database {
 		String query = "SELECT * FROM lessonLearnedDB ORDER BY id";
 		try (PreparedStatement pstmt = connection.prepareStatement(query);
 				ResultSet rs = pstmt.executeQuery()) {
-			while (rs.next()) lessons.add(lessonFromRow(rs));
+			while (rs.next()) lessons.add(lessonLearnedFromRow(rs));
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
@@ -1403,7 +1420,7 @@ public class Database {
 	 * @return the populated lesson
 	 * @throws SQLException if a column cannot be read
 	 */
-	private LessonLearned lessonFromRow(ResultSet rs) throws SQLException {
+	private LessonLearned lessonLearnedFromRow(ResultSet rs) throws SQLException {
 		LessonLearned lesson = new LessonLearned(
 				rs.getInt("id"), rs.getString("title"),
 				rs.getString("lessonText"), rs.getString("author"));
@@ -1424,6 +1441,27 @@ public class Database {
 		lesson.setEffortVisible(rs.getBoolean("effortVisible"));
 		return lesson;
 	}
+
+	/*******
+	 * <p> Method: LessonsLearned lessonFromRow(ResultSet rs) </p>
+	 *
+	 * <p> Description: Builds a LessonsLearned entity from the current row of the
+	 * lessonDB result set.  Restored during PR review: the lessonLearnedDB mapper
+	 * above had taken this method's name, which left getLessonById,
+	 * getLessonsByAuthor and searchLessonsByAuthor without a row mapper. </p>
+	 *
+	 * @param rs result set positioned at a lessonDB row
+	 *
+	 * @return the populated LessonsLearned entity
+	 *
+	 * @throws SQLException if a column cannot be read
+	 */
+	private LessonsLearned lessonFromRow(ResultSet rs) throws SQLException {
+		return new LessonsLearned(rs.getInt("id"), rs.getString("author"), rs.getString("title"),
+				rs.getString("description"), rs.getString("category"),
+				rs.getTimestamp("createdAt"), rs.getTimestamp("updatedAt"));
+	}
+
 	/*******
 	 * <p> Method: LessonLearned getLessonById(int id) </p>
 	 * 
