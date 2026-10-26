@@ -17,3 +17,6 @@ bin/
 # OS / shortcuts
 .DS_Store
 *.lnk
+
+# Generated Javadoc output
+JavaDoc/

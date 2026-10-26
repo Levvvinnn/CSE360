@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /*******
- * <p> Title: LessonLearned Class </p>
+ * <p> Title: LessonsLearned Class </p>
  * 
  * <p> Description: This entity class represents one lesson learned in the system.  It holds the
  * "core information" a contributor enters (title, description, category) and the values the
@@ -38,8 +38,8 @@ public class LessonsLearned {
 	
 	/*
 	 * Additional lesson content attributes from the team epics.  Merged in from the
-	 * LessonLearned class so that this class, which carries the required name, is the
-	 * single lesson entity for the system.
+	 * duplicate entity class this one replaces, so that a single lesson entity under the
+	 * required name serves the whole system.
 	 */
 	private String rootCause;
 	private String recommendation;
@@ -55,7 +55,7 @@ public class LessonsLearned {
 	private boolean effortVisible;
 	
 	/*****
-	 * <p> Method: LessonLearned(String author, String title, String description,
+	 * <p> Method: LessonsLearned(String author, String title, String description,
 	 * 		String category) </p>
 	 * 
 	 * <p> Description: This constructor is used for a new lesson that has not yet been saved.
@@ -85,7 +85,7 @@ public class LessonsLearned {
 	}
 	
 	/*****
-	 * <p> Method: LessonLearned(int id, String author, String title, String description,
+	 * <p> Method: LessonsLearned(int id, String author, String title, String description,
 	 * 		String category, Timestamp createdAt, Timestamp updatedAt) </p>
 	 * 
 	 * <p> Description: This constructor is used when a lesson is read back from the database. </p>

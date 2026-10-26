@@ -112,7 +112,7 @@ public class LessonManager {
 	}
 	
 	/**********
-	 * <p> Method: LessonLearnedList listMyLessons(String author) </p>
+	 * <p> Method: LessonsLearnedList listMyLessons(String author) </p>
 	 * 
 	 * <p> Description: Get every lesson the contributor has added. </p>
 	 * 
@@ -128,7 +128,7 @@ public class LessonManager {
 	}
 	
 	/**********
-	 * <p> Method: LessonLearned getLesson(String author, int id) </p>
+	 * <p> Method: LessonsLearned getLesson(String author, int id) </p>
 	 * 
 	 * <p> Description: Get one of the contributor's lessons. </p>
 	 * 
@@ -146,7 +146,7 @@ public class LessonManager {
 	}
 	
 	/**********
-	 * <p> Method: LessonLearnedList searchMyLessons(String author, String keyword) </p>
+	 * <p> Method: LessonsLearnedList searchMyLessons(String author, String keyword) </p>
 	 * 
 	 * <p> Description: Get the subset of the contributor's lessons that match the keyword.
 	 * Empty search text returns all of the contributor's lessons. </p>

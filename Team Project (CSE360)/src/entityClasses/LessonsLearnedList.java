@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 /*******
- * <p> Title: LessonLearnedList Class </p>
+ * <p> Title: LessonsLearnedList Class </p>
  * 
  * <p> Description: This class holds any group of lessons learned: every lesson a contributor has
  * added, or just the subset returned by a search.  The group may be empty, hold one lesson, or
@@ -25,7 +25,7 @@ public class LessonsLearnedList {
 	private final String emptyMessage;		// Shown when the list has no elements
 	
 	/*****
-	 * <p> Method: LessonLearnedList(String emptyMessage) </p>
+	 * <p> Method: LessonsLearnedList(String emptyMessage) </p>
 	 * 
 	 * <p> Description: Establishes an empty list. </p>
 	 * 
@@ -39,7 +39,8 @@ public class LessonsLearnedList {
 	 * <p> Method: LessonsLearnedList() </p>
 	 * 
 	 * <p> Description: Establishes an empty list with no empty-list message.  Merged in from
-	 * the LessonLearnedList class for callers that build a list without a message. </p>
+	 * the duplicate list class this one replaces, for callers that build a list without a
+	 * message. </p>
 	 */
 	public LessonsLearnedList() {
 		this.emptyMessage = "";
@@ -58,7 +59,7 @@ public class LessonsLearnedList {
 	}
 	
 	/*****
-	 * <p> Method: void add(LessonLearned lesson) </p>
+	 * <p> Method: void add(LessonsLearned lesson) </p>
 	 * @param lesson the lesson to add to the end of the list
 	 */
 	public void add(LessonsLearned lesson) { lessons.add(lesson); }
@@ -76,7 +77,7 @@ public class LessonsLearnedList {
 	public boolean isEmpty() { return lessons.isEmpty(); }
 	
 	/*****
-	 * <p> Method: LessonLearned get(int index) </p>
+	 * <p> Method: LessonsLearned get(int index) </p>
 	 * @param index the position in the list (starting at 0)
 	 * @return the lesson at that position
 	 */
