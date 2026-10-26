@@ -1507,6 +1507,30 @@ public class Database {
 		return result;
 	}
 	/*******
+	 * <p> Method: List getAllLessons() </p>
+	 * 
+	 * <p> Description: Get the complete collection of lessons in the lesson table, from every
+	 * contributor, oldest first.  The result can be placed in a LessonsLearnedList, from which
+	 * author and keyword subsets can be built.</p>
+	 * 
+	 * @return a list of every stored lesson (empty if there are none)
+	 * 
+	 */
+	// Read: get the complete collection of lessons learned
+	public List<LessonsLearned> getAllLessons() {
+		List<LessonsLearned> result = new ArrayList<LessonsLearned>();
+		String query = "SELECT * FROM lessonDB ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) result.add(lessonFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+
+	/*******
 	 * <p> Method: List searchLessonsByAuthor(String author, String keyword) </p>
 	 * 
 	 * <p> Description: Get the subset of one contributor's lessons whose title or description
