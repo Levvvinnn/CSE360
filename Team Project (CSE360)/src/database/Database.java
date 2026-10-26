@@ -63,7 +63,7 @@ public class Database {
 		try {
 			Class.forName(JDBC_DRIVER);
 
-			connection = DriverManager.getConnection(DB_URL, USER, PASS);
+			connection = DriverManager.getConnection(dbUrl, USER, PASS);
 			statement = connection.createStatement();
 
 			// Uncomment this if you want to completely reset the database.
