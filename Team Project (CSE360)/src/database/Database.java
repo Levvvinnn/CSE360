@@ -158,6 +158,11 @@ public class Database {
 		        + "updatedAt TIMESTAMP)";
 		statement.execute(lessonTable);
 
+		/* TP2 keyword search: lessonDB also stores the Keywords attribute so the Contributor
+		 * search can look in it.  Added with ALTER so existing databases keep their lessons;
+		 * existing rows get an empty string. */
+		statement.execute("ALTER TABLE lessonDB ADD COLUMN IF NOT EXISTS keywords VARCHAR(1000) DEFAULT ''");
+
 		// Add epic columns to existing databases without deleting saved lessons.
 		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS rootCause VARCHAR(2000) DEFAULT ''");
 		statement.execute("ALTER TABLE lessonLearnedDB ADD COLUMN IF NOT EXISTS recommendation VARCHAR(2000) DEFAULT ''");
@@ -1330,7 +1335,8 @@ public class Database {
 	 * <p> Method: int insertLesson(LessonsLearned lesson) </p>
 	 * 
 	 * <p> Description: Creates a new row in the lesson table using the lesson parameter.  The
-	 * database generates the id; this method sets both timestamps to the current time. </p>
+	 * database generates the id; this method sets both timestamps to the current time.  The
+	 * lesson's keywords are stored too, so they can be searched. </p>
 	 * 
 	 * @param lesson specifies the lesson to be added to the database.
 	 * 
@@ -1340,7 +1346,7 @@ public class Database {
 	// Create: add a lesson learned
 	public int insertLesson(LessonsLearned lesson) {
 		String query = "INSERT INTO lessonDB (title, description, category, author, "
-				+ "createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)";
+				+ "createdAt, updatedAt, keywords) VALUES (?, ?, ?, ?, ?, ?, ?)";
 		Timestamp now = new Timestamp(System.currentTimeMillis());
 		try (PreparedStatement pstmt = connection.prepareStatement(query,
 				Statement.RETURN_GENERATED_KEYS)) {
@@ -1350,6 +1356,7 @@ public class Database {
 			pstmt.setString(4, lesson.getAuthor());
 			pstmt.setTimestamp(5, now);
 			pstmt.setTimestamp(6, now);
+			pstmt.setString(7, lesson.getKeywords());
 			pstmt.executeUpdate();
 			ResultSet keys = pstmt.getGeneratedKeys();
 			if (keys.next()) return keys.getInt(1);
@@ -1456,9 +1463,11 @@ public class Database {
 	 * @throws SQLException if a column cannot be read
 	 */
 	private LessonsLearned lessonFromRow(ResultSet rs) throws SQLException {
-		return new LessonsLearned(rs.getInt("id"), rs.getString("author"), rs.getString("title"),
-				rs.getString("description"), rs.getString("category"),
+		LessonsLearned lesson = new LessonsLearned(rs.getInt("id"), rs.getString("author"),
+				rs.getString("title"), rs.getString("description"), rs.getString("category"),
 				rs.getTimestamp("createdAt"), rs.getTimestamp("updatedAt"));
+		lesson.setKeywords(rs.getString("keywords"));		// null becomes "" in setKeywords
+		return lesson;
 	}
 
 	/*******
@@ -1533,8 +1542,10 @@ public class Database {
 	/*******
 	 * <p> Method: List searchLessonsByAuthor(String author, String keyword) </p>
 	 * 
-	 * <p> Description: Get the subset of one contributor's lessons whose title or description
-	 * contains the keyword, ignoring case.  The characters % and _ in the keyword are treated
+	 * <p> Description: Get the subset of one contributor's lessons whose title, description or
+	 * keywords contain the keyword, ignoring case.  These are the same fields that
+	 * LessonsLearnedList.subsetByKeyword searches, so both searches give the same result; the
+	 * author and category are not searched.  The characters % and _ in the keyword are treated
 	 * as ordinary text, not as SQL wildcards.</p>
 	 * 
 	 * @param author is the username of the contributor
@@ -1550,12 +1561,14 @@ public class Database {
 		String pattern = "%" + keyword.toLowerCase().replace("\\", "\\\\").replace("%", "\\%")
 				.replace("_", "\\_") + "%";
 		String query = "SELECT * FROM lessonDB WHERE author = ? AND "
-				+ "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(description) LIKE ? ESCAPE '\\') "
+				+ "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(description) LIKE ? ESCAPE '\\' "
+				+ "OR LOWER(keywords) LIKE ? ESCAPE '\\') "
 				+ "ORDER BY id";
 		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
 			pstmt.setString(1, author);
 			pstmt.setString(2, pattern);
 			pstmt.setString(3, pattern);
+			pstmt.setString(4, pattern);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) result.add(lessonFromRow(rs));
 		} catch (SQLException e) {
