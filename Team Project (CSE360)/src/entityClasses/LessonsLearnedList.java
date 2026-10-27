@@ -30,10 +30,12 @@ import java.util.List;
  * <li> subsetByAuthor keeps the lessons whose author is exactly the given username, which is
  * how Database.getLessonsByAuthor and LessonManager decide which lessons a contributor owns.
  * </li>
- * <li> subsetByKeyword keeps the lessons whose title or description contains the keyword,
- * ignoring case, which matches Database.searchLessonsByAuthor and test cases TC-17 and TC-18.
- * The author and category are deliberately not searched.  Empty search text keeps every lesson,
- * which matches TC-20. </li>
+ * <li> subsetByKeyword keeps the lessons whose title, description or keywords contain the
+ * keyword, ignoring case, which matches Database.searchLessonsByAuthor and test cases TC-17,
+ * TC-18 and TC-C44.  The keywords are searched because the Keywords attribute exists to help
+ * lessons be found.  The author, category, root cause and recommendation are deliberately not
+ * searched.  Empty search text keeps every lesson, which matches TC-20.  createSubset uses the
+ * same rule, so the class has one search behavior. </li>
  * </ul>
  * 
  * <p> How this supports the Contributor functions: the Contributor "Show All" and "Search"
@@ -50,6 +52,8 @@ import java.util.List;
  * @version 1.00		2026-10-05 Initial version for HW2
  * @version 1.01		2026-10-25 TP2: copy constructor, null guard, findById, and the
  * 		author and keyword subset operations
+ * @version 1.02		2026-10-26 TP2: keyword search also searches the Keywords attribute;
+ * 		createSubset uses the same search rule as subsetByKeyword
  */
 public class LessonsLearnedList {
 	
@@ -190,12 +194,12 @@ public class LessonsLearnedList {
 	/*****
 	 * <p> Method: LessonsLearnedList subsetByKeyword(String keyword, String emptyMessage) </p>
 	 * 
-	 * <p> Description: Builds the subset of this list whose title or description contains the
-	 * keyword, ignoring case and the spaces at the ends of the keyword.  Empty search text keeps
-	 * every lesson.  The length limit on search text is checked by LessonValidator before a
-	 * search is made, so it is not repeated here. </p>
+	 * <p> Description: Builds the subset of this list whose title, description or keywords
+	 * contain the keyword, ignoring case and the spaces at the ends of the keyword.  Empty
+	 * search text keeps every lesson.  The length limit on search text is checked by
+	 * LessonValidator before a search is made, so it is not repeated here. </p>
 	 * 
-	 * @param keyword the text to look for in titles and descriptions
+	 * @param keyword the text to look for in titles, descriptions and keywords
 	 * 
 	 * @param emptyMessage the message the subset shows if it is empty
 	 * 
@@ -206,7 +210,8 @@ public class LessonsLearnedList {
 		String text = (keyword == null) ? "" : keyword.trim().toLowerCase();
 		for (LessonsLearned lesson : lessons)
 			if (text.isEmpty() || lesson.getTitle().toLowerCase().contains(text)
-					|| lesson.getDescription().toLowerCase().contains(text))
+					|| lesson.getDescription().toLowerCase().contains(text)
+					|| lesson.getKeywords().toLowerCase().contains(text))
 				subset.add(lesson);
 		return subset;
 	}
@@ -242,29 +247,21 @@ public class LessonsLearnedList {
 	/*****
 	 * <p> Method: LessonsLearnedList createSubset(String searchText) </p>
 	 * 
-	 * <p> Description: Builds a new list holding only the lessons whose title, description,
-	 * or author contains the search text, ignoring case.  Null or blank search text returns
+	 * <p> Description: Builds a new list holding only the lessons whose title, description or
+	 * keywords contain the search text, ignoring case.  Null or blank search text returns
 	 * every lesson.  The empty-list message is carried over to the subset. </p>
+	 * 
+	 * <p> Design note: this method uses exactly the same rule as subsetByKeyword, so the class
+	 * (and the database search) have one search behavior.  It no longer searches the author:
+	 * a Contributor's own search is already limited to their own lessons, and the TP2 search
+	 * requirement covers title, description and keywords. </p>
 	 * 
 	 * @param searchText the text to look for
 	 * 
 	 * @return a new list containing only the matching lessons
 	 */
 	public LessonsLearnedList createSubset(String searchText) {
-		LessonsLearnedList subset = new LessonsLearnedList(emptyMessage);
-		if (searchText == null || searchText.trim().isEmpty()) {
-			subset.lessons.addAll(lessons);
-			return subset;
-		}
-		String search = searchText.trim().toLowerCase();
-		for (LessonsLearned lesson : lessons) {
-			if (lesson.getTitle().toLowerCase().contains(search)
-					|| lesson.getDescription().toLowerCase().contains(search)
-					|| lesson.getAuthor().toLowerCase().contains(search)) {
-				subset.lessons.add(lesson);
-			}
-		}
-		return subset;
+		return subsetByKeyword(searchText, emptyMessage);
 	}
 	
 	/*****

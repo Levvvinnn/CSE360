@@ -5,22 +5,24 @@ import java.sql.Timestamp;
 import database.Database;
 import entityClasses.LessonsLearned;
 import entityClasses.LessonsLearnedList;
+import lessonManager.LessonManager;
 
 /*******
  * <p> Title: LessonsLearnedListTests Class </p>
  * 
  * <p> Description: Automated tests for the LessonsLearnedList entity class: the complete
  * collection of lessons and the subsets built from it.  Each public test method checks one
- * requirement (LIST-01 to LIST-14), prints one PASS or FAIL line followed by the expected and
+ * requirement (LIST-01 to LIST-16), prints one PASS or FAIL line followed by the expected and
  * actual values, and the run ends with the totals.  Like LessonTestAutomation, this is a plain
  * Java application: run it and read the console. </p>
  * 
- * <p> Design note: LIST-01 to LIST-12 and LIST-14 build their lists in memory, so they test
- * LessonsLearnedList by itself and do not depend on the database.  LIST-13 is the one test that
- * uses a database, because its requirement is about the complete persistent collection; it uses
- * its own database (TP2ListTestDatabase) so it never touches the application's data or the
- * HW2 test database.  The test methods are public and documented so that each one appears in
- * the generated Javadoc and can be traced to its requirement. </p>
+ * <p> Design note: LIST-01 to LIST-12, LIST-14 and LIST-15 build their lists in memory, so they
+ * test LessonsLearnedList by itself and do not depend on the database.  LIST-13 and LIST-16 use
+ * a database, because their requirements are about stored lessons (the complete persistent
+ * collection, and the search the Contributor page performs); they use their own database
+ * (TP2ListTestDatabase) so they never touch the application's data or the HW2 test database.
+ * The test methods are public and documented so that each one appears in the generated Javadoc
+ * and can be traced to its requirement. </p>
  * 
  * <p> Reading the output: a line starting with PASS means the actual values matched every
  * expected value listed on the next line; FAIL means at least one did not.  A run with
@@ -31,6 +33,8 @@ import entityClasses.LessonsLearnedList;
  * @author Levin Shibu
  * 
  * @version 1.00		2026-10-25 Initial version for TP2
+ * @version 1.01		2026-10-26 LIST-15 and LIST-16: keyword-only matches, in the list and
+ * 		through the Contributor search
  */
 public class LessonsLearnedListTests {
 	
@@ -72,6 +76,8 @@ public class LessonsLearnedListTests {
 		testList12CopyConstructorIndependent();
 		testList13CompleteCollectionAllContributors();
 		testList14KeywordDoesNotSearchAuthor();
+		testList15KeywordFoundOnlyInKeywords();
+		testList16ContributorSearchFindsKeywordOnly();
 		System.out.println("\nPassed: " + passed + "   Failed: " + failed);
 	}
 	
@@ -447,12 +453,13 @@ public class LessonsLearnedListTests {
 	/**********
 	 * <p> Method: testList14KeywordDoesNotSearchAuthor() </p>
 	 * 
-	 * <p> Requirement LIST-14 (negative): subsetByKeyword searches only the title and the
-	 * description, so it gives the same result as the database search used by the Contributor
+	 * <p> Requirement LIST-14 (negative): subsetByKeyword searches only the title, description
+	 * and keywords, so it gives the same result as the database search used by the Contributor
 	 * page.  The author is not searched. </p>
 	 * 
 	 * <p> Approach: search the sample collection for "carol", a username that appears in no
-	 * title or description, and for "   " (spaces only), which counts as empty search text. </p>
+	 * title, description or keywords, and for "   " (spaces only), which counts as empty search
+	 * text. </p>
 	 * 
 	 * <p> PASS means "carol" finds nothing and the spaces-only search keeps all 4 lessons (the
 	 * same rule as TC-20).  FAIL means the author was searched or empty text was mishandled. </p>
@@ -465,6 +472,90 @@ public class LessonsLearnedListTests {
 		report("LIST-14", "subsetByKeyword does not search the author; blank keeps all", ok,
 				"\"carol\" size=0, blank size=4",
 				"\"carol\" size=" + byName.size() + ", blank size=" + blank.size());
+	}
+	
+	/**********
+	 * <p> Method: testList15KeywordFoundOnlyInKeywords() </p>
+	 * 
+	 * <p> Requirement LIST-15: a lesson can be found when the search text appears only in its
+	 * Keywords field (the same rule as TC-C44).  Both subsetByKeyword and createSubset follow it.
+	 * </p>
+	 * 
+	 * <p> Approach: give the sample collection a fifth lesson whose keywords are "git, branching"
+	 * and whose title and description do not contain "branching".  Search for "BRANCHING" (a
+	 * different case) with subsetByKeyword and with createSubset. </p>
+	 * 
+	 * <p> PASS means both searches return exactly lesson 5.  FAIL means the keywords were not
+	 * searched, the case was not ignored, or the two methods disagree. </p>
+	 */
+	public static void testList15KeywordFoundOnlyInKeywords() {
+		LessonsLearnedList all = sampleCollection();
+		LessonsLearned merge = lesson(5, "bob", "Merge conflicts before the deadline",
+				"Two people edited the same file the night before it was due.", "Teamwork");
+		merge.setKeywords("git, branching");
+		all.add(merge);
+		LessonsLearnedList bySubset = all.subsetByKeyword("BRANCHING", NO_MATCH);
+		LessonsLearnedList byCreate = all.createSubset("BRANCHING");
+		boolean ok = bySubset.size() == 1 && bySubset.get(0).getId() == 5
+				&& byCreate.size() == 1 && byCreate.get(0).getId() == 5;
+		report("LIST-15", "A lesson is found when the text is only in its keywords", ok,
+				"subsetByKeyword ids=[5], createSubset ids=[5]",
+				"subsetByKeyword ids=" + ids(bySubset) + ", createSubset ids=" + ids(byCreate));
+	}
+	
+	/**********
+	 * <p> Method: testList16ContributorSearchFindsKeywordOnly() </p>
+	 * 
+	 * <p> Requirement LIST-16: the search the Contributor page performs
+	 * (LessonManager.searchMyLessons, which uses Database.searchLessonsByAuthor) also finds a
+	 * stored lesson by its keywords, and still returns only the Contributor's own lessons. </p>
+	 * 
+	 * <p> Approach: using the TP2ListTestDatabase, store a lesson for alice and one for bob, both
+	 * with the keyword "branching" and neither with it in the title or description.  Search as
+	 * alice for "branching", then search as alice for "kubernetes". </p>
+	 * 
+	 * <p> PASS means alice's search returns exactly her one lesson, with its keywords read back
+	 * from the database, bob's lesson is not included (negative case), and "kubernetes" returns
+	 * an empty subset with the no-match message.  FAIL means the database search ignores the
+	 * keywords, returns another contributor's lesson, or the database could not be used. </p>
+	 */
+	public static void testList16ContributorSearchFindsKeywordOnly() {
+		String actual;
+		boolean ok;
+		int aliceId = -1;
+		Database db = new Database(TEST_DB_URL);
+		try {
+			db.connectToDatabase();
+			db.deleteAllLessons();
+			LessonsLearned a = new LessonsLearned("alice", "Merge conflicts before the deadline",
+					"Two people edited the same file the night before it was due.", "Teamwork");
+			a.setKeywords("git, branching");
+			LessonsLearned b = new LessonsLearned("bob", "Feature work collided",
+					"Both of us changed Database.java in the same week.", "Teamwork");
+			b.setKeywords("branching, code review");
+			aliceId = db.insertLesson(a);
+			db.insertLesson(b);
+			LessonManager mgr = new LessonManager(db);
+			LessonsLearnedList found = mgr.searchMyLessons("alice", "branching");
+			LessonsLearnedList none = mgr.searchMyLessons("alice", "kubernetes");
+			ok = found != null && found.size() == 1 && found.get(0).getId() == aliceId
+					&& found.get(0).getKeywords().equals("git, branching")
+					&& none != null && none.isEmpty()
+					&& none.getStatusMessage().equals(NO_MATCH);
+			actual = "alice \"branching\" ids=" + (found == null ? "null" : ids(found))
+					+ " keywords=\"" + (found == null || found.isEmpty() ? ""
+							: found.get(0).getKeywords())
+					+ "\", alice \"kubernetes\" size=" + (none == null ? "null" : none.size());
+			db.deleteAllLessons();
+		} catch (Exception e) {
+			ok = false;
+			actual = "exception: " + e.getMessage();
+		} finally {
+			db.closeConnection();
+		}
+		report("LIST-16", "Contributor search finds a keyword-only match, own lessons only", ok,
+				"alice \"branching\" ids=[" + aliceId + "] keywords=\"git, branching\", "
+						+ "alice \"kubernetes\" size=0", actual);
 	}
 	
 	// The ids in a list, for the printed results
