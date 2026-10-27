@@ -122,7 +122,15 @@ public class ContributorTestbed {
 	 * run starts from the same state and nothing else in the test database is touched. </p> */
 	private static List<Integer> createdIds = new ArrayList<Integer>();
 
-
+	
+	/*****
+	 * <p> Method: ContributorTestbed() </p>
+	 *
+	 * <p> Description: Not used.  The testbed is run through main() and all of its methods
+	 * are static, so no object of this class is ever created. </p>
+	 */
+	private ContributorTestbed() {
+	}
 	/*****************************************************************************************
 	 * Reporting helpers
 	 ****************************************************************************************/
