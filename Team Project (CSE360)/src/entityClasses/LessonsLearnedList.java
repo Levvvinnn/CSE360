@@ -56,8 +56,10 @@ public class LessonsLearnedList {
 	/*
 	 * These are the private attributes for this list object
 	 */
+	/** The lessons currently held in this list. */
 	private final List<LessonsLearned> lessons = new ArrayList<LessonsLearned>();
-	private final String emptyMessage;		// Shown when the list has no elements
+	/** Shown when the list has no elements. */
+	private final String emptyMessage;
 	
 	/*****
 	 * <p> Method: LessonsLearnedList(String emptyMessage) </p>
