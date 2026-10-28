@@ -44,54 +44,87 @@ public class ViewLessons {
 	*/
 	
 	// These are the application values required by the user interface
+	/** The width, in pixels, the page's widgets were laid out for. */
 	private static double width = applicationMain.FoundationsMain.WINDOW_WIDTH;
+	/** The height, in pixels, the page's widgets were laid out for. */
 	private static double height = applicationMain.FoundationsMain.WINDOW_HEIGHT;
 	
 	// GUI Area 1: the purpose of the page and whose account is being used
+	/** Shows the page's title: "Lessons Learned" or "Lessons Learned (Admin)". */
 	protected static Label label_PageTitle = new Label();
+	/** Shows which user is currently logged in. */
 	protected static Label label_UserDetails = new Label();
 	
 	// This is a separator and it is used to partition the GUI for various tasks
+	/** Separates GUI Area 1 from the rest of the page. */
 	private static Line line_Separator1 = new Line(20, 95, width-20, 95);
 	
 	// GUI Area 2 (left): the lesson form used to create, view, update and delete one lesson
+	/** Labels the title field. */
 	protected static Label label_Title = new Label("Title (1 to 100 characters)");
+	/** Holds the title typed or loaded for the current lesson. */
 	protected static TextField text_Title = new TextField();
+	/** Labels the description field. */
 	protected static Label label_Description = new Label("Description (1 to 1000 characters)");
+	/** Holds the description typed or loaded for the current lesson. */
 	protected static TextArea text_Description = new TextArea();
+	/** Labels the category field. */
 	protected static Label label_Category = new Label("Category");
+	/** Holds the category chosen for the current lesson, from LessonValidator.CATEGORIES. */
 	protected static ComboBox <String> combobox_Category = new ComboBox <String>();
+	/** Saves the form as a new lesson. */
 	protected static Button button_Create = new Button("Create");
+	/** Saves changes to the selected lesson. */
 	protected static Button button_Update = new Button("Update");
+	/** Deletes the selected lesson, after confirmation. */
 	protected static Button button_Delete = new Button("Delete");
+	/** Empties the form and forgets which lesson was selected. */
 	protected static Button button_Clear = new Button("Clear");
+	/** Shows the result of the most recent action: red for an error, green for success. */
 	protected static Label label_Status = new Label();
+	/** Confirms "Are you sure?" before a lesson is permanently deleted. */
 	protected static Alert alertConfirmDelete = new Alert(AlertType.CONFIRMATION);
 	
 	// GUI Area 3 (right): search and the list of lessons
+	/** Labels the keyword search field. */
 	protected static Label label_Search = new Label("Search all lessons");
+	/** Holds the keyword text for a team-wide search. */
 	protected static TextField text_Search = new TextField();
+	/** Runs a team-wide keyword search using the text in text_Search. */
 	protected static Button button_Search = new Button("Search");
+	/** Shows every lesson in the system, from every contributor. */
 	protected static Button button_ShowAll = new Button("Show All");
+	/** Filters the team-wide list down to one category when chosen. */
 	protected static ComboBox <String> combobox_SearchCategory = new ComboBox <String>();
+	/** Shows the lessons currently in view: one line per lesson. */
 	protected static ListView <String> list_Lessons = new ListView <String>();
 	
 	// This is a separator and it is used to partition the GUI for various tasks
+	/** Separates GUI Area 3 from GUI Area 4. */
 	private static Line line_Separator4 = new Line(20, 525, width-20, 525);
 	
 	// GUI Area 4: navigation
+	/** Returns to the page that opened this one (Admin Home or Role1 Home). */
 	protected static Button button_Back = new Button("Back to Home");
+	/** Logs out and returns to the login page. */
 	protected static Button button_Logout = new Button("Logout");
+	/** Terminates the execution of the program. */
 	protected static Button button_Quit = new Button("Quit");
 	
 	// This is the end of the GUI objects for the page.
 	
-	private static ViewLessons theView;			// Used to determine if instantiation is needed
-	protected static Stage theStage;			// The Stage that JavaFX has established for us
-	private static Pane theRootPane;			// The Pane that holds all the GUI widgets
-	protected static User theUser;				// The current logged in User
-	protected static boolean theIsAdmin = false;	// True when opened from the Admin Home page
-	private static Scene theLessonsScene;		// The shared Scene each invocation populates
+	/** Used to determine if instantiation is needed. */
+	private static ViewLessons theView;
+	/** The Stage that JavaFX has established for us. */
+	protected static Stage theStage;
+	/** The Pane that holds all the GUI widgets. */
+	private static Pane theRootPane;
+	/** The current logged in User. */
+	protected static User theUser;
+	/** True when opened from the Admin Home page, letting an Admin change any lesson. */
+	protected static boolean theIsAdmin = false;
+	/** The shared Scene each invocation populates. */
+	private static Scene theLessonsScene;
 	
 	/*-*******************************************************************************************
 
