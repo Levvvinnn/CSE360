@@ -1,1 +1,1 @@
-typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html","k":"18"},{"p":"guiLessons","l":"ControllerLessons"},{"p":"guiLessons","l":"ModelLessons"},{"p":"guiLessons","l":"ViewLessons"}];updateSearchResults();
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html","k":"18"},{"p":"entityClasses","l":"LessonsLearned"},{"p":"entityClasses","l":"LessonsLearnedList"},{"p":"entityClasses","l":"User"}];updateSearchResults();
