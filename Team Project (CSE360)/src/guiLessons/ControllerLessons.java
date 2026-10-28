@@ -43,7 +43,8 @@ public class ControllerLessons {
 	public ControllerLessons() {
 	}
 	
-	private static LessonManager manager;					// Created the first time it is needed
+	/** The LessonManager this page uses; created the first time it is needed. */
+	private static LessonManager manager;
 	
 	/*-*******************************************************************************************
 
@@ -51,25 +52,54 @@ public class ControllerLessons {
 	
 	*/
 	
-	// The manager is created on first use so the database reference is certain to exist
+	/**
+	 * <p> Method: getManager() </p>
+	 * 
+	 * <p> Description: Returns the shared LessonManager, creating it on first use so the
+	 * database reference is certain to exist by the time it is needed. </p>
+	 * 
+	 * @return the LessonManager this page uses
+	 */
 	private static LessonManager getManager() {
 		if (manager == null)
 			manager = new LessonManager(applicationMain.FoundationsMain.database);
 		return manager;
 	}
 	
-	// The username of the contributor using this page
+	/**
+	 * <p> Method: author() </p>
+	 * 
+	 * <p> Description: Returns the username of the contributor currently using this page. </p>
+	 * 
+	 * @return the logged-in user's username
+	 */
 	private static String author() {
 		return ViewLessons.theUser.getUserName();
 	}
 	
-	// Show a message under the form: red for an error, green for a success or information
+	/**
+	 * <p> Method: showStatus(String message, boolean isError) </p>
+	 * 
+	 * <p> Description: Shows a message under the form, styled red for an error or green for a
+	 * success or informational message. </p>
+	 * 
+	 * @param message the text to display
+	 * 
+	 * @param isError true to style the message as an error (red), false for success (green)
+	 */
 	private static void showStatus(String message, boolean isError) {
 		ViewLessons.label_Status.setStyle(isError ? "-fx-text-fill: red;" : "-fx-text-fill: green;");
 		ViewLessons.label_Status.setText(message);
 	}
 	
-	// Put a set of lessons into the list on the page
+	/**
+	 * <p> Method: showList(LessonsLearnedList list) </p>
+	 * 
+	 * <p> Description: Records the given set of lessons as the page's current list and puts a
+	 * one-line summary of each lesson into the list widget on the page. </p>
+	 * 
+	 * @param list the set of lessons to display
+	 */
 	private static void showList(LessonsLearnedList list) {
 		ModelLessons.currentList = list;
 		List<String> rows = new ArrayList<String>();
@@ -79,7 +109,12 @@ public class ControllerLessons {
 		ViewLessons.list_Lessons.setItems(FXCollections.observableArrayList(rows));
 	}
 	
-	// Reload the team-wide list into the list without changing the status line
+	/**
+	 * <p> Method: refreshList() </p>
+	 * 
+	 * <p> Description: Reloads the team-wide list of every lesson into the list widget,
+	 * without changing the status line underneath it. </p>
+	 */
 	private static void refreshList() {
 		showList(getManager().listAllLessons());
 	}

@@ -30,16 +30,22 @@ public class ModelLessons {
 	public ModelLessons() {
 	}
 
-	// The set of lessons currently being shown in the list widget.  This is either every
-	// lesson in the system (after "Show All") or the subset matching the most recent keyword
-	// or category search.  It may legitimately be empty.
+	/**
+	 * The set of lessons currently being shown in the list widget.  This is either every
+	 * lesson in the system (after "Show All") or the subset matching the most recent keyword
+	 * or category search.  It may legitimately be empty.
+	 */
 	protected static LessonsLearnedList currentList = null;
 
-	// The id of the lesson currently selected in the list, for viewing, updating, or deleting;
-	// -1 means no lesson is currently selected (i.e., the form is set up to create a new one).
+	/**
+	 * The id of the lesson currently selected in the list, for viewing, updating, or deleting;
+	 * -1 means no lesson is currently selected (i.e., the form is set up to create a new one).
+	 */
 	protected static int selectedLessonId = -1;
 
-	// The username of the author of the currently selected lesson, if any; null when no lesson
-	// is selected.  Lets the page show who wrote the selected lesson.
+	/**
+	 * The username of the author of the currently selected lesson, if any; null when no lesson
+	 * is selected.  Lets the page show who wrote the selected lesson.
+	 */
 	protected static String selectedLessonAuthor = null;
 }
