@@ -236,6 +236,10 @@ public class ViewUserUpdate {
 		theRootPane = new Pane();
 		theUserUpdateScene = new Scene(theRootPane, width, height);
 
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theUserUpdateScene, width, height);
+
 		// Initialize the pop-up dialogs to an empty text filed.
 		dialogUpdateFirstName = new TextInputDialog("");
 		dialogUpdateMiddleName = new TextInputDialog("");

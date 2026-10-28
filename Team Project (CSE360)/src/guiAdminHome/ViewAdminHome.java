@@ -106,6 +106,7 @@ public class ViewAdminHome {
 	protected static Button button_DeleteUser = new Button("Delete a User");
 	protected static Button button_ListUsers = new Button("List All Users");
 	protected static Button button_AddRemoveRoles = new Button("Add/Remove Roles");
+	protected static Button button_LessonsLearned = new Button("Lessons Learned");
 	protected static Alert alertNotImplemented = new Alert(AlertType.INFORMATION);
 	protected static Alert alertListUsers = new Alert(AlertType.INFORMATION);
 	protected static TextArea textarea_UserList = new TextArea();
@@ -212,6 +213,10 @@ public class ViewAdminHome {
 		// Create the Pane for the list of widgets and the Scene for the window
 		theRootPane = new Pane();
 		theAdminHomeScene = new Scene(theRootPane, width, height);
+
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theAdminHomeScene, width, height);
 	
 		// Populate the window with the title and other common widgets and set their static state
 		
@@ -293,6 +298,9 @@ public class ViewAdminHome {
 		setupButtonUI(button_AddRemoveRoles, "Dialog", 16, 250, Pos.CENTER, 20, 470);
 		button_AddRemoveRoles.setOnAction((_) -> {ControllerAdminHome.addRemoveRoles(); });
 		
+		setupButtonUI(button_LessonsLearned, "Dialog", 16, 250, Pos.CENTER, 290, 470);
+		button_LessonsLearned.setOnAction((_) -> {ControllerAdminHome.performLessons(); });
+		
 		// GUI Area 5
 		setupButtonUI(button_Logout, "Dialog", 18, 250, Pos.CENTER, 20, 540);
 		button_Logout.setOnAction((_) -> {ControllerAdminHome.performLogout(); });
@@ -316,6 +324,7 @@ public class ViewAdminHome {
     		button_DeleteUser,
     		button_ListUsers,
     		button_AddRemoveRoles,
+    		button_LessonsLearned,
     		line_Separator4, 
     		button_Logout,
     		button_Quit

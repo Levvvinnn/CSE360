@@ -160,6 +160,10 @@ public class ViewNewAccount {
 		theRootPane = new Pane();
 		theNewAccountScene = new Scene(theRootPane, width, height);
 
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theNewAccountScene, width, height);
+
 		// Label the Panle with the name of the startup screen, centered at the top of the pane
 		setupLabelUI(label_ApplicationTitle, "Arial", 28, width, Pos.CENTER, 0, 5);
 		

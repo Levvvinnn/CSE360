@@ -147,6 +147,10 @@ public class ViewRole2Home {
 		// Create the Pane for the list of widgets and the Scene for the window
 		theRootPane = new Pane();
 		theRole2HomeScene = new Scene(theRootPane, width, height);	// Create the scene
+
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theRole2HomeScene, width, height);
 		
 		// Set the title for the window
 		

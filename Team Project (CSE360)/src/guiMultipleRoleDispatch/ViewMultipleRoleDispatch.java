@@ -143,6 +143,10 @@ public class ViewMultipleRoleDispatch {
 		theRootPane = new Pane();
 		theMultipleRoleDispatchScene = new Scene(theRootPane, width, height);
 
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theMultipleRoleDispatchScene, width, height);
+
 		// Populate the window with the title and other common widgets and set their static state
 		
 		// GUI Area 1

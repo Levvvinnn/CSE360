@@ -389,6 +389,19 @@ public class ControllerAdminHome {
 	/**********
 	 * <p> 
 	 * 
+	 * Title: performLessons () Method. </p>
+	 * 
+	 * <p> Description: Protected method that opens the Lessons Learned page in admin mode, so
+	 * this Admin can review, fix, or remove any lesson in the system, not just lessons they
+	 * created themselves. </p>
+	 */
+	protected static void performLessons() {
+		guiLessons.ViewLessons.displayLessons(ViewAdminHome.theStage, ViewAdminHome.theUser, true);
+	}
+	
+	/**********
+	 * <p> 
+	 * 
 	 * Title: invalidEmailAddress () Method. </p>
 	 * 
 	 * <p> Description: Protected method that is intended to check an email address before it is

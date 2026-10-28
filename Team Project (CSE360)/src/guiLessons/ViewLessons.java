@@ -22,8 +22,9 @@ import lessonValidator.LessonValidator;
  * <p> Title: ViewLessons Class. </p>
  * 
  * <p> Description: The Java/FX-based Lessons Learned page.  This class provides the JavaFX GUI
- * widgets that let a contributor create, list, view, search, update and delete their own
- * lessons learned.  It follows the same singleton View pattern as the other pages: all access
+ * widgets that let a logged-in user create, view, search, update and delete lessons learned.  Every user
+ * can see and search the full team-wide list; only the author of a lesson, or an Admin, may
+ * update or delete it.  It follows the same singleton View pattern as the other pages: all access
  * starts with the static method displayLessons, which instantiates the class once and then
  * refreshes the parts that change on each use.  The page contains no validation or database
  * logic; the Controller calls LessonManager, which performs both.</p>
@@ -68,10 +69,11 @@ public class ViewLessons {
 	protected static Alert alertConfirmDelete = new Alert(AlertType.CONFIRMATION);
 	
 	// GUI Area 3 (right): search and the list of lessons
-	protected static Label label_Search = new Label("Search my lessons");
+	protected static Label label_Search = new Label("Search all lessons");
 	protected static TextField text_Search = new TextField();
 	protected static Button button_Search = new Button("Search");
 	protected static Button button_ShowAll = new Button("Show All");
+	protected static ComboBox <String> combobox_SearchCategory = new ComboBox <String>();
 	protected static ListView <String> list_Lessons = new ListView <String>();
 	
 	// This is a separator and it is used to partition the GUI for various tasks
@@ -88,6 +90,7 @@ public class ViewLessons {
 	protected static Stage theStage;			// The Stage that JavaFX has established for us
 	private static Pane theRootPane;			// The Pane that holds all the GUI widgets
 	protected static User theUser;				// The current logged in User
+	protected static boolean theIsAdmin = false;	// True when opened from the Admin Home page
 	private static Scene theLessonsScene;		// The shared Scene each invocation populates
 	
 	/*-*******************************************************************************************
@@ -109,11 +112,30 @@ public class ViewLessons {
 	 * @param user specifies the User for this GUI and it's methods
 	 */
 	public static void displayLessons(Stage ps, User user) {
+		displayLessons(ps, user, false);
+	}
+	
+	/**********
+	 * <p> Method: displayLessons(Stage ps, User user, boolean isAdmin) </p>
+	 * 
+	 * <p> Description: This is the entry point used when an Admin opens this page from Admin
+	 * Home.  It behaves exactly like displayLessons(Stage, User) except that it lets the Admin
+	 * update or delete any lesson, not just lessons they created themselves. </p>
+	 * 
+	 * @param ps specifies the JavaFX Stage to be used for this GUI and it's methods
+	 * 
+	 * @param user specifies the User for this GUI and it's methods
+	 * 
+	 * @param isAdmin true when this page is being opened by an Admin
+	 */
+	public static void displayLessons(Stage ps, User user, boolean isAdmin) {
 		theStage = ps;
 		theUser = user;
+		theIsAdmin = isAdmin;
 		
 		if (theView == null) theView = new ViewLessons();
 		
+		label_PageTitle.setText(theIsAdmin ? "Lessons Learned (Admin)" : "Lessons Learned");
 		label_UserDetails.setText("User: " + theUser.getUserName());
 		ControllerLessons.performClear();
 		ControllerLessons.performShowAll();
@@ -133,6 +155,10 @@ public class ViewLessons {
 		
 		theRootPane = new Pane();
 		theLessonsScene = new Scene(theRootPane, width, height);
+
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theLessonsScene, width, height);
 		
 		// GUI Area 1
 		label_PageTitle.setText("Lessons Learned");
@@ -185,6 +211,14 @@ public class ViewLessons {
 		setupButtonUI(button_ShowAll, "Dialog", 16, 100, Pos.CENTER, 540, 170);
 		button_ShowAll.setOnAction((_) -> {ControllerLessons.performShowAll(); });
 		
+		combobox_SearchCategory.setStyle("-fx-font: 14 Dialog;");
+		combobox_SearchCategory.setMinWidth(130);
+		combobox_SearchCategory.setLayoutX(650);
+		combobox_SearchCategory.setLayoutY(170);
+		combobox_SearchCategory.setPromptText("By Category");
+		combobox_SearchCategory.setItems(FXCollections.observableArrayList(LessonValidator.CATEGORIES));
+		combobox_SearchCategory.setOnAction((_) -> {ControllerLessons.performSearchByCategory(); });
+		
 		list_Lessons.setLayoutX(430);
 		list_Lessons.setLayoutY(210);
 		list_Lessons.setMinSize(350, 305);
@@ -205,8 +239,8 @@ public class ViewLessons {
 			label_Title, text_Title, label_Description, text_Description,
 			label_Category, combobox_Category,
 			button_Create, button_Update, button_Delete, button_Clear, label_Status,
-			label_Search, text_Search, button_Search, button_ShowAll, list_Lessons,
-			line_Separator4, button_Back, button_Logout, button_Quit);
+			label_Search, text_Search, button_Search, button_ShowAll, combobox_SearchCategory,
+			list_Lessons, line_Separator4, button_Back, button_Logout, button_Quit);
 	}
 	
 	/*-*******************************************************************************************

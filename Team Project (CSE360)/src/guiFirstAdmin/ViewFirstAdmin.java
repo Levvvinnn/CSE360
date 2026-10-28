@@ -144,6 +144,10 @@ public class ViewFirstAdmin {
 		theRootPane = new Pane();
 		theFirstAdminScene = new Scene(theRootPane, width, height);
 
+		// TP2: make this page scale proportionally when its window is resized,
+		// instead of staying pinned at its original size.
+		guiTools.ResponsiveLayout.makeResponsive(theRootPane, theFirstAdminScene, width, height);
+
 		// Label theScene with the name of the system startup screen
 		setupLabelUI(label_ApplicationTitle, "Arial", 32, width, Pos.CENTER, 0, 10);
 

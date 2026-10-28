@@ -1563,6 +1563,63 @@ public class Database {
 		}
 		return result;
 	}
+
+	/*******
+	 * <p> Method: List searchLessonsByKeyword(String keyword) </p>
+	 * 
+	 * <p> Description: Get the subset of every lesson, from every contributor, whose title or
+	 * description contains the keyword, ignoring case.  The characters % and _ in the keyword
+	 * are treated as ordinary text, not as SQL wildcards.  TP2: supports team-wide search. </p>
+	 * 
+	 * @param keyword is the text to look for
+	 * 
+	 * @return a list of the matching lessons (empty if there are none)
+	 * 
+	 */
+	// Read: get the subset of every lesson, from every contributor, that matches a keyword
+	public List<LessonsLearned> searchLessonsByKeyword(String keyword) {
+		List<LessonsLearned> result = new ArrayList<LessonsLearned>();
+		String pattern = "%" + keyword.toLowerCase().replace("\\", "\\\\").replace("%", "\\%")
+				.replace("_", "\\_") + "%";
+		String query = "SELECT * FROM lessonDB WHERE "
+				+ "(LOWER(title) LIKE ? ESCAPE '\\' OR LOWER(description) LIKE ? ESCAPE '\\') "
+				+ "ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, pattern);
+			pstmt.setString(2, pattern);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) result.add(lessonFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
+	/*******
+	 * <p> Method: List getLessonsByCategory(String category) </p>
+	 * 
+	 * <p> Description: Get every lesson, from every contributor, whose category matches
+	 * exactly, ignoring case.  TP2: supports category search. </p>
+	 * 
+	 * @param category is the category to match
+	 * 
+	 * @return a list of the matching lessons (empty if there are none)
+	 * 
+	 */
+	// Read: get every lesson in one category, from every contributor
+	public List<LessonsLearned> getLessonsByCategory(String category) {
+		List<LessonsLearned> result = new ArrayList<LessonsLearned>();
+		String query = "SELECT * FROM lessonDB WHERE LOWER(category) = LOWER(?) ORDER BY id";
+		try (PreparedStatement pstmt = connection.prepareStatement(query)) {
+			pstmt.setString(1, category);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) result.add(lessonFromRow(rs));
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return result;
+	}
+
 	/*******
 	 * <p> Method: boolean updateLesson(int id, String title, String description,
 	 * 		String category) </p>

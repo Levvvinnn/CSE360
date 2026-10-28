@@ -13,9 +13,10 @@ import lessonValidator.LessonValidator;
  * then calls the Database class.  Keeping this logic in one class with no JavaFX code lets the
  * GUI pages and the automated tests use exactly the same code path.
  * 
- * Design note: a contributor can only see and change their own lessons.  A lesson that belongs
- * to someone else is reported as "Lesson not found." so the system does not reveal whether that
- * lesson exists.</p>
+ * Design note: every logged-in user can see and search every lesson in the system (team-wide),
+ * but only the lesson's own author, or an Admin, may update or delete it.  A lesson that does
+ * not exist is reported as "Lesson not found."; a lesson that exists but belongs to someone
+ * else, when a non-admin tries to change it, is reported with MSG_NOT_OWNER instead.</p>
  * 
  * <p> Copyright: Lynn Robert Carter © 2025 </p>
  * 
@@ -40,6 +41,13 @@ public class LessonManager {
 	
 	/** Message used when the database could not save a lesson. */
 	public static final String MSG_SAVE_FAILED = "The lesson could not be saved. Try again.";
+	
+	/** Message used when nobody has recorded any lesson yet. */
+	public static final String MSG_NO_LESSONS_ANY = "No lessons have been recorded yet.";
+	
+	/** Message used when a non-admin tries to change a lesson someone else created. */
+	public static final String MSG_NOT_OWNER = 
+			"You can only update or delete lessons you created.";
 	
 	private final Database database;			// The database this manager works with
 	private int lastCreatedId = -1;			// The id of the lesson most recently created
@@ -223,6 +231,164 @@ public class LessonManager {
 	public String deleteLesson(String author, int id, String answer) {
 		if (findOwned(author, id) == null) {
 			lastMessage = MSG_NOT_FOUND;
+			return lastMessage;
+		}
+		if (!"Yes".equals(answer)) {
+			lastMessage = MSG_DELETE_CANCELLED;
+			return lastMessage;
+		}
+		lastMessage = database.deleteLesson(id) ? "" : MSG_NOT_FOUND;
+		return lastMessage;
+	}
+	
+	/**********
+	 * <p> Method: LessonLearnedList listAllLessons() </p>
+	 * 
+	 * <p> Description: Get every lesson currently recorded, from every contributor.  This is
+	 * what the "Show All" action on the page now uses so a logged-in user can review everything
+	 * the team has learned, not just their own lessons. </p>
+	 * 
+	 * @return every lesson in the system (the list may be empty)
+	 */
+	public LessonsLearnedList listAllLessons() {
+		LessonsLearnedList list = new LessonsLearnedList(MSG_NO_LESSONS_ANY);
+		for (LessonsLearned lesson : database.getAllLessons()) list.add(lesson);
+		lastMessage = list.getStatusMessage();
+		return list;
+	}
+	
+	/**********
+	 * <p> Method: LessonLearnedList searchByKeyword(String keyword) </p>
+	 * 
+	 * <p> Description: Get the subset of every lesson, from every contributor, that matches the
+	 * keyword.  Empty search text returns every lesson. </p>
+	 * 
+	 * @param keyword the text to look for in titles and descriptions
+	 * 
+	 * @return the matching lessons (the list may be empty), or null if the search text is
+	 * 		invalid; in that case getLastMessage explains why
+	 */
+	public LessonsLearnedList searchByKeyword(String keyword) {
+		lastMessage = LessonValidator.validateSearchText(keyword);
+		if (!lastMessage.isEmpty()) return null;
+		
+		String text = (keyword == null) ? "" : keyword.trim();
+		if (text.isEmpty()) return listAllLessons();
+		
+		LessonsLearnedList list = new LessonsLearnedList(MSG_NO_MATCH);
+		for (LessonsLearned lesson : database.searchLessonsByKeyword(text)) list.add(lesson);
+		lastMessage = list.getStatusMessage();
+		return list;
+	}
+	
+	/**********
+	 * <p> Method: LessonLearnedList searchByCategory(String category) </p>
+	 * 
+	 * <p> Description: Get the subset of every lesson, from every contributor, whose category
+	 * matches exactly, ignoring case. </p>
+	 * 
+	 * @param category the category to match; must be one of LessonValidator.CATEGORIES
+	 * 
+	 * @return the matching lessons (the list may be empty), or null if the category is
+	 * 		invalid; in that case getLastMessage explains why
+	 */
+	public LessonsLearnedList searchByCategory(String category) {
+		lastMessage = LessonValidator.validateCategory(category);
+		if (!lastMessage.isEmpty()) return null;
+		
+		LessonsLearnedList list = new LessonsLearnedList(MSG_NO_MATCH);
+		for (LessonsLearned lesson : database.getLessonsByCategory(category)) list.add(lesson);
+		lastMessage = list.getStatusMessage();
+		return list;
+	}
+	
+	/**********
+	 * <p> Method: LessonLearned getLessonById(int id) </p>
+	 * 
+	 * <p> Description: Get one lesson by id regardless of who created it.  Used so any
+	 * logged-in user can open the details of a lesson they see in the team-wide list; the
+	 * ownership check still happens separately, at update or delete time. </p>
+	 * 
+	 * @param id the id of the lesson
+	 * 
+	 * @return the lesson, or null (with the message "Lesson not found.") if it does not exist
+	 */
+	public LessonsLearned getLessonById(int id) {
+		LessonsLearned lesson = database.getLessonById(id);
+		lastMessage = (lesson == null) ? MSG_NOT_FOUND : "";
+		return lesson;
+	}
+	
+	/**********
+	 * <p> Method: String updateLesson(String currentUser, int id, String title,
+	 * 		String description, String category, boolean isAdmin) </p>
+	 * 
+	 * <p> Description: Change any lesson after validating the new values.  A non-admin may
+	 * only change a lesson they created; an admin may change any lesson.  The lesson is left
+	 * unchanged when validation or the ownership check fails. </p>
+	 * 
+	 * @param currentUser the username of the logged-in user making the change
+	 * 
+	 * @param id the id of the lesson
+	 * 
+	 * @param title the new title
+	 * 
+	 * @param description the new description
+	 * 
+	 * @param category the new category
+	 * 
+	 * @param isAdmin true when the logged-in user is an Admin, who may change any lesson
+	 * 
+	 * @return an empty string if the lesson was updated, else the error message
+	 */
+	public String updateLesson(String currentUser, int id, String title, String description,
+			String category, boolean isAdmin) {
+		LessonsLearned existing = database.getLessonById(id);
+		if (existing == null) {
+			lastMessage = MSG_NOT_FOUND;
+			return lastMessage;
+		}
+		if (!isAdmin && !existing.getAuthor().equals(currentUser)) {
+			lastMessage = MSG_NOT_OWNER;
+			return lastMessage;
+		}
+		lastMessage = validateCoreInformation(title, description, category);
+		if (!lastMessage.isEmpty()) return lastMessage;
+		
+		LessonsLearned cleaned = new LessonsLearned(existing.getAuthor(), title, description,
+				category);
+		if (!database.updateLesson(id, cleaned.getTitle(), cleaned.getDescription(),
+				cleaned.getCategory()))
+			lastMessage = MSG_SAVE_FAILED;
+		return lastMessage;
+	}
+	
+	/**********
+	 * <p> Method: String deleteLesson(String currentUser, int id, String answer,
+	 * 		boolean isAdmin) </p>
+	 * 
+	 * <p> Description: Delete any lesson after the user confirms.  A non-admin may only delete
+	 * a lesson they created; an admin may delete any lesson.  The lesson is removed only when
+	 * the answer to "Are you sure?" is exactly "Yes". </p>
+	 * 
+	 * @param currentUser the username of the logged-in user requesting the delete
+	 * 
+	 * @param id the id of the lesson
+	 * 
+	 * @param answer the user's answer to the confirmation question
+	 * 
+	 * @param isAdmin true when the logged-in user is an Admin, who may delete any lesson
+	 * 
+	 * @return an empty string if the lesson was removed, else the message explaining why not
+	 */
+	public String deleteLesson(String currentUser, int id, String answer, boolean isAdmin) {
+		LessonsLearned existing = database.getLessonById(id);
+		if (existing == null) {
+			lastMessage = MSG_NOT_FOUND;
+			return lastMessage;
+		}
+		if (!isAdmin && !existing.getAuthor().equals(currentUser)) {
+			lastMessage = MSG_NOT_OWNER;
 			return lastMessage;
 		}
 		if (!"Yes".equals(answer)) {
